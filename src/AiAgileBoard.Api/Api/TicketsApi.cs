@@ -65,7 +65,7 @@ public static class TicketsApi
         Guid Id,
         string Title,
         string Description,
-        IEnumerable<string> Comments,
+        IReadOnlyCollection<string> Comments,
         int StoryPoints,
         string State,
         bool HumanNeeded,

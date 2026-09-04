@@ -70,6 +70,28 @@ public sealed class TicketEndpointTests : IClassFixture<AiAgileBoardWebApplicati
     }
 
     [Fact]
+    public async Task SubmitTicketRejectsConflictingStateValues()
+    {
+        var request = new
+        {
+            title = "Conflicting state ticket",
+            description = "State ID and name disagree.",
+            comments = Array.Empty<object>(),
+            storyPoints = 1,
+            stateId = 1,
+            state = new { name = "Done" },
+            assignee = "Human"
+        };
+
+        using var response = await _client.PostAsJsonAsync(
+            "/api/v1/tickets",
+            request,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task QueryTicketsReturnsAllStoredTickets()
     {
         var request = new
