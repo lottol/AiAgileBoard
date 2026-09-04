@@ -1,58 +1,85 @@
 using AiAgileBoard.Data;
 using AiAgileBoard.Domain;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace AiAgileBoard.Application;
 
 public sealed class TicketService(AgileBoardDbContext dbContext)
 {
+    public IQueryable<Ticket> QueryTickets()
+    {
+        return dbContext.Tickets
+            .AsNoTracking()
+            .Include(ticket => ticket.State)
+            .Include(ticket => ticket.Comments);
+    }
+
     public async Task<Ticket> SubmitTicketAsync(
-        SubmitTicketRequest request,
+        Ticket ticket,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(request.Title);
-        ArgumentException.ThrowIfNullOrWhiteSpace(request.Description);
+        ArgumentNullException.ThrowIfNull(ticket);
+        ArgumentException.ThrowIfNullOrWhiteSpace(ticket.Title);
+        ArgumentException.ThrowIfNullOrWhiteSpace(ticket.Description);
 
-        if (request.StoryPoints < 0)
+        if (ticket.StoryPoints < 0)
         {
             throw new ArgumentOutOfRangeException(
-                nameof(request),
+                nameof(ticket),
                 "Story points cannot be negative.");
         }
 
-        var stateName = string.IsNullOrWhiteSpace(request.State) ? "Backlog" : request.State.Trim();
-        var state = await dbContext.States.SingleOrDefaultAsync(
-            item => item.Name == stateName,
-            cancellationToken);
+        if (!Enum.IsDefined(ticket.Assignee))
+        {
+            throw new ArgumentException("Assignee must be Human or Agent.", nameof(ticket));
+        }
+
+        State? state;
+        if (ticket.StateId > 0)
+        {
+            state = await dbContext.States.SingleOrDefaultAsync(
+                item => item.Id == ticket.StateId,
+                cancellationToken);
+        }
+        else
+        {
+            var stateName = string.IsNullOrWhiteSpace(ticket.State?.Name)
+                ? "Backlog"
+                : ticket.State.Name.Trim();
+            state = await dbContext.States.SingleOrDefaultAsync(
+                item => item.Name == stateName,
+                cancellationToken);
+        }
 
         if (state is null)
         {
-            throw new ArgumentException($"The state '{stateName}' does not exist.", nameof(request));
+            var requestedState = ticket.StateId > 0
+                ? ticket.StateId.ToString(CultureInfo.InvariantCulture)
+                : ticket.State?.Name ?? "Backlog";
+            throw new ArgumentException(
+                $"The state '{requestedState}' does not exist.",
+                nameof(ticket));
         }
 
-        var ticket = new Ticket
-        {
-            Id = Guid.NewGuid(),
-            Title = request.Title.Trim(),
-            Description = request.Description.Trim(),
-            StoryPoints = request.StoryPoints,
-            Assignee = request.Assignee,
-            StateId = state.Id,
-            State = state
-        };
+        ticket.Id = Guid.NewGuid();
+        ticket.Title = ticket.Title.Trim();
+        ticket.Description = ticket.Description.Trim();
+        ticket.StateId = state.Id;
+        ticket.State = state;
 
-        foreach (var body in request.Comments ?? [])
+        foreach (var comment in ticket.Comments.ToArray())
         {
-            if (!string.IsNullOrWhiteSpace(body))
+            if (string.IsNullOrWhiteSpace(comment.Body))
             {
-                ticket.Comments.Add(new TicketComment
-                {
-                    Id = Guid.NewGuid(),
-                    Body = body.Trim(),
-                    Ticket = ticket,
-                    TicketId = ticket.Id
-                });
+                ticket.Comments.Remove(comment);
+                continue;
             }
+
+            comment.Id = Guid.NewGuid();
+            comment.Body = comment.Body.Trim();
+            comment.Ticket = ticket;
+            comment.TicketId = ticket.Id;
         }
 
         dbContext.Tickets.Add(ticket);

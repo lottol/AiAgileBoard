@@ -19,9 +19,9 @@ public sealed class TicketEndpointTests : IClassFixture<AiAgileBoardWebApplicati
         {
             title = "Create the ticket backend",
             description = "Persist the initial ticket fields.",
-            comments = new[] { "First comment" },
+            comments = new[] { new { body = "First comment" } },
             storyPoints = 3,
-            state = "Backlog",
+            state = new { name = "Backlog" },
             assignee = "Agent"
         };
 
@@ -50,9 +50,9 @@ public sealed class TicketEndpointTests : IClassFixture<AiAgileBoardWebApplicati
         {
             title = "Invalid ticket",
             description = "This state does not exist.",
-            comments = Array.Empty<string>(),
+            comments = Array.Empty<object>(),
             storyPoints = 1,
-            state = "Imaginary",
+            state = new { name = "Imaginary" },
             assignee = "Human"
         };
 
@@ -62,5 +62,37 @@ public sealed class TicketEndpointTests : IClassFixture<AiAgileBoardWebApplicati
             TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task QueryTicketsAppliesFilters()
+    {
+        var request = new
+        {
+            title = "Queryable ticket",
+            description = "Find this ticket through the API.",
+            comments = Array.Empty<object>(),
+            storyPoints = 8,
+            state = new { name = "Waiting for Agent" },
+            assignee = "Agent"
+        };
+
+        using var submitResponse = await _client.PostAsJsonAsync(
+            "/api/v1/tickets",
+            request,
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, submitResponse.StatusCode);
+
+        using var queryResponse = await _client.GetAsync(
+            "/api/v1/tickets?state=Waiting%20for%20Agent&assignee=Agent&minStoryPoints=5&search=Queryable",
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, queryResponse.StatusCode);
+        using var body = await JsonDocument.ParseAsync(
+            await queryResponse.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken),
+            cancellationToken: TestContext.Current.CancellationToken);
+        var ticket = Assert.Single(body.RootElement.EnumerateArray());
+        Assert.Equal("Queryable ticket", ticket.GetProperty("title").GetString());
+        Assert.Equal("Waiting for Agent", ticket.GetProperty("state").GetString());
     }
 }

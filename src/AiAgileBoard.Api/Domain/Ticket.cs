@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace AiAgileBoard.Domain;
 
 public sealed class Ticket
@@ -16,5 +18,6 @@ public sealed class Ticket
 
     public State State { get; set; } = null!;
 
+    [JsonObjectCreationHandling(JsonObjectCreationHandling.Populate)]
     public ICollection<TicketComment> Comments { get; } = [];
 }
