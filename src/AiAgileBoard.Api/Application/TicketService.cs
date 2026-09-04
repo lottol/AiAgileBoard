@@ -7,12 +7,18 @@ namespace AiAgileBoard.Application;
 
 public sealed class TicketService(AgileBoardDbContext dbContext)
 {
-    public IQueryable<Ticket> QueryTickets()
+    public Task<List<Ticket>> QueryTicketsAsync(
+        Func<IQueryable<Ticket>, IQueryable<Ticket>> query,
+        CancellationToken cancellationToken = default)
     {
-        return dbContext.Tickets
+        ArgumentNullException.ThrowIfNull(query);
+
+        var tickets = dbContext.Tickets
             .AsNoTracking()
             .Include(ticket => ticket.State)
             .Include(ticket => ticket.Comments);
+
+        return query(tickets).ToListAsync(cancellationToken);
     }
 
     public async Task<Ticket> SubmitTicketAsync(

@@ -1,3 +1,6 @@
+using AiAgileBoard.Application;
+using AiAgileBoard.Domain;
+using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -6,9 +9,11 @@ namespace AiAgileBoard.IntegrationTests;
 public sealed class TicketEndpointTests : IClassFixture<AiAgileBoardWebApplicationFactory>
 {
     private readonly HttpClient _client;
+    private readonly AiAgileBoardWebApplicationFactory _factory;
 
     public TicketEndpointTests(AiAgileBoardWebApplicationFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient();
     }
 
@@ -65,7 +70,7 @@ public sealed class TicketEndpointTests : IClassFixture<AiAgileBoardWebApplicati
     }
 
     [Fact]
-    public async Task QueryTicketsAppliesFilters()
+    public async Task QueryTicketsReturnsAllStoredTickets()
     {
         var request = new
         {
@@ -84,15 +89,48 @@ public sealed class TicketEndpointTests : IClassFixture<AiAgileBoardWebApplicati
         Assert.Equal(HttpStatusCode.Created, submitResponse.StatusCode);
 
         using var queryResponse = await _client.GetAsync(
-            "/api/v1/tickets?state=Waiting%20for%20Agent&assignee=Agent&minStoryPoints=5&search=Queryable",
+            "/api/v1/tickets",
             TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, queryResponse.StatusCode);
         using var body = await JsonDocument.ParseAsync(
             await queryResponse.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken),
             cancellationToken: TestContext.Current.CancellationToken);
-        var ticket = Assert.Single(body.RootElement.EnumerateArray());
+        var ticket = body.RootElement
+            .EnumerateArray()
+            .Single(item => item.GetProperty("title").GetString() == "Queryable ticket");
         Assert.Equal("Queryable ticket", ticket.GetProperty("title").GetString());
         Assert.Equal("Waiting for Agent", ticket.GetProperty("state").GetString());
+    }
+
+    [Fact]
+    public async Task TicketServiceAcceptsComposableLinqQuery()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var ticketService = scope.ServiceProvider.GetRequiredService<TicketService>();
+        const string title = "LINQ service ticket";
+
+        await ticketService.SubmitTicketAsync(
+            new Ticket
+            {
+                Title = title,
+                Description = "Query this ticket directly through the service.",
+                StoryPoints = 5,
+                Assignee = Assignee.Agent,
+                State = new State { Name = "Waiting for Agent" }
+            },
+            TestContext.Current.CancellationToken);
+
+        var tickets = await ticketService.QueryTicketsAsync(
+            query => query.Where(ticket =>
+                ticket.Title == title &&
+                ticket.Assignee == Assignee.Agent &&
+                ticket.StoryPoints >= 5),
+            TestContext.Current.CancellationToken);
+
+        var ticket = Assert.Single(tickets);
+        Assert.Equal(title, ticket.Title);
+        Assert.Equal(Assignee.Agent, ticket.Assignee);
+        Assert.True(ticket.StoryPoints >= 5);
     }
 }
