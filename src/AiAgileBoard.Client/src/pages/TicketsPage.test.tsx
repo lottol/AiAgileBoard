@@ -29,7 +29,9 @@ describe('TicketsPage', () => {
     expect(screen.queryByText('Welcome back.')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Submit a ticket' })).toHaveClass('floating-submit')
     const ticketTitle = await screen.findByText('Review agent handoff')
-    expect(ticketTitle.closest('article')).toHaveTextContent('Human Review')
+    const ticketRow = ticketTitle.closest('article')
+    expect(ticketRow).toHaveTextContent(ticket.id)
+    expect(ticketRow).toHaveTextContent('Human Review')
   })
 
   it('opens the submission form', async () => {

@@ -17,11 +17,6 @@ function Icon({ name }: { name: 'plus' | 'ticket' | 'person' | 'agent' | 'check'
   )
 }
 
-function formatTicketId(id: string) {
-  const compact = id.replaceAll('-', '').slice(0, 5).toUpperCase()
-  return `AAB-${compact || 'NEW'}`
-}
-
 function statusClass(status: string) {
   return status.toLowerCase().replaceAll(' ', '-')
 }
@@ -68,7 +63,7 @@ export function TicketsPage() {
 
   function handleTicketCreated(createdTicket: Ticket) {
     setTickets((current) => [...current, createdTicket])
-    setToast(`${formatTicketId(createdTicket.id)} was added to the board.`)
+    setToast(`${createdTicket.id} was added to the board.`)
   }
 
   return (
@@ -145,7 +140,7 @@ export function TicketsPage() {
               {tickets.map((ticket) => (
                 <article className="ticket-row" key={ticket.id}>
                   <div className="ticket-main">
-                    <span className="ticket-id">{formatTicketId(ticket.id)}</span>
+                    <span className="ticket-id">{ticket.id}</span>
                     <h3>{ticket.title}</h3>
                     <p>{ticket.description}</p>
                   </div>
