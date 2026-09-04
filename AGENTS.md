@@ -25,7 +25,7 @@ Development will occur in Docker container.
 - Follow the architecture documented in PROJECT_PLAN.md.
 
 ## Before Making Any Changes
-1. Create new Git branch off of development branch. Any commit messages will have The agent name prefixing any proper commit message created
+1. Create new Git branch off of development branch.
 
 ## Before Making Major Changes
 1. Read PROJECT_PLAN.md.
@@ -34,8 +34,9 @@ Development will occur in Docker container.
 4. Explain significant architectural changes before implementing them.
 
 ## After Making Any Changes
-1. If possible, please submit a code review by creating a pull request to merge it into development.
-2. Tell me what branch was made regardless of whether or not a pull request was made
+1. Any commit messages will have The agent name prefixing any proper commit message created
+2. If possible, please submit a code review by creating a pull request to merge it into development.
+3. Tell me what branch was made regardless of whether or not a pull request was made
 
 ## Dependencies
 Do not introduce a new dependency when the functionality can
