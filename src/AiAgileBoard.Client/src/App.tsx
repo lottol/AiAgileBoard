@@ -1,59 +1,13 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { TicketCreateModal, type Ticket } from './TicketCreateModal'
 
-type Assignee = 'Human' | 'Agent'
-
-type Ticket = {
-  id: string
-  title: string
-  description: string
-  comments: string[]
-  storyPoints: number
-  state: string
-  humanNeeded: boolean
-  assignee: Assignee
-}
-
-type TicketForm = {
-  title: string
-  description: string
-  storyPoints: string
-  assignee: Assignee
-  state: string
-  note: string
-}
-
-const initialForm: TicketForm = {
-  title: '',
-  description: '',
-  storyPoints: '3',
-  assignee: 'Human',
-  state: 'Backlog',
-  note: '',
-}
-
-const statuses = [
-  'Backlog',
-  'Ready for Human',
-  'Human In Progress',
-  'Waiting for Agent',
-  'Agent In Progress',
-  'Human Review',
-  'Changes Requested',
-  'Blocked',
-  'Done',
-  'Canceled',
-]
-
-const agentStatuses = new Set(['Waiting for Agent', 'Agent In Progress', 'Changes Requested'])
-
-function Icon({ name }: { name: 'plus' | 'ticket' | 'person' | 'agent' | 'check' | 'close' }) {
+function Icon({ name }: { name: 'plus' | 'ticket' | 'person' | 'agent' | 'check' }) {
   const paths = {
     plus: <path d="M12 5v14M5 12h14" />,
     ticket: <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5V9a3 3 0 0 0 0 6v2.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5V15a3 3 0 0 0 0-6V6.5ZM9 8v8" />,
     person: <><circle cx="12" cy="8" r="3" /><path d="M5.5 20a6.5 6.5 0 0 1 13 0" /></>,
     agent: <><rect x="5" y="7" width="14" height="12" rx="3" /><path d="M12 3v4M9 12h.01M15 12h.01M9 16h6" /></>,
     check: <path d="m5 12 4 4L19 6" />,
-    close: <path d="m6 6 12 12M18 6 6 18" />,
   }
 
   return (
@@ -76,11 +30,8 @@ export function App() {
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
-  const [submitError, setSubmitError] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [form, setForm] = useState<TicketForm>(initialForm)
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [toast, setToast] = useState('')
-  const dialogRef = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -115,61 +66,9 @@ export function App() {
     done: tickets.filter((ticket) => ticket.state === 'Done').length,
   }), [tickets])
 
-  function openDialog() {
-    setSubmitError('')
-    dialogRef.current?.showModal()
-  }
-
-  function closeDialog() {
-    if (isSubmitting) return
-    dialogRef.current?.close()
-  }
-
-  function updateField<Key extends keyof TicketForm>(key: Key, value: TicketForm[Key]) {
-    setForm((current) => {
-      const next = { ...current, [key]: value }
-      if (key === 'state') next.assignee = agentStatuses.has(String(value)) ? 'Agent' : 'Human'
-      return next
-    })
-  }
-
-  async function submitTicket(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setSubmitError('')
-    setIsSubmitting(true)
-
-    const payload = {
-      title: form.title.trim(),
-      description: form.description.trim(),
-      storyPoints: Number(form.storyPoints),
-      assignee: form.assignee,
-      stateId: 0,
-      state: {
-        name: form.state,
-        humanNeeded: !agentStatuses.has(form.state),
-      },
-      comments: form.note.trim() ? [{ body: form.note.trim() }] : [],
-    }
-
-    try {
-      const response = await fetch('/api/v1/tickets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-
-      if (!response.ok) throw new Error('Ticket could not be submitted.')
-
-      const createdTicket = await response.json() as Ticket
-      setTickets((current) => [...current, createdTicket])
-      setForm(initialForm)
-      dialogRef.current?.close()
-      setToast(`${formatTicketId(createdTicket.id)} was added to the board.`)
-    } catch {
-      setSubmitError('The ticket could not be submitted. Please review the details and try again.')
-    } finally {
-      setIsSubmitting(false)
-    }
+  function handleTicketCreated(createdTicket: Ticket) {
+    setTickets((current) => [...current, createdTicket])
+    setToast(`${formatTicketId(createdTicket.id)} was added to the board.`)
   }
 
   return (
@@ -232,7 +131,7 @@ export function App() {
               <div className="empty-icon"><Icon name="ticket" /></div>
               <h3>Your board is ready</h3>
               <p>Create the first ticket to give your team or an AI agent something to pick up.</p>
-              <button className="secondary-button" type="button" onClick={openDialog}>
+              <button className="secondary-button" type="button" onClick={() => setIsCreateOpen(true)}>
                 <Icon name="plus" /> Create first ticket
               </button>
             </div>
@@ -267,101 +166,16 @@ export function App() {
         </section>
       </main>
 
-      <button className="primary-button floating-submit" type="button" onClick={openDialog}>
+      <button className="primary-button floating-submit" type="button" onClick={() => setIsCreateOpen(true)}>
         <Icon name="plus" />
         Submit a ticket
       </button>
 
-      <dialog
-        className="ticket-dialog"
-        ref={dialogRef}
-        onClick={(event) => { if (event.target === event.currentTarget) closeDialog() }}
-        onCancel={(event) => { if (isSubmitting) event.preventDefault() }}
-      >
-        <form method="dialog" onSubmit={submitTicket}>
-          <div className="dialog-header">
-            <div className="dialog-kicker"><Icon name="ticket" /></div>
-            <div>
-              <h2>Submit a new ticket</h2>
-              <p>Give the next person or agent a clear place to start.</p>
-            </div>
-            <button className="icon-button" type="button" onClick={closeDialog} aria-label="Close dialog">
-              <Icon name="close" />
-            </button>
-          </div>
-
-          <div className="form-body">
-            <label className="field full-width">
-              <span>Ticket title</span>
-              <input
-                autoFocus
-                maxLength={200}
-                required
-                value={form.title}
-                onChange={(event) => updateField('title', event.target.value)}
-                placeholder="e.g. Add keyboard shortcuts to the board"
-              />
-            </label>
-
-            <label className="field full-width">
-              <span>Description</span>
-              <textarea
-                required
-                rows={4}
-                value={form.description}
-                onChange={(event) => updateField('description', event.target.value)}
-                placeholder="Describe the outcome, context, and any useful constraints…"
-              />
-            </label>
-
-            <label className="field">
-              <span>Status</span>
-              <select value={form.state} onChange={(event) => updateField('state', event.target.value)}>
-                {statuses.map((status) => <option key={status}>{status}</option>)}
-              </select>
-            </label>
-
-            <label className="field">
-              <span>Assigned to</span>
-              <select value={form.assignee} onChange={(event) => updateField('assignee', event.target.value as Assignee)}>
-                <option value="Human">Human</option>
-                <option value="Agent">AI agent</option>
-              </select>
-            </label>
-
-            <label className="field">
-              <span>Story points</span>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                required
-                value={form.storyPoints}
-                onChange={(event) => updateField('storyPoints', event.target.value)}
-              />
-            </label>
-
-            <label className="field full-width">
-              <span>Initial note <em>Optional</em></span>
-              <textarea
-                rows={3}
-                value={form.note}
-                onChange={(event) => updateField('note', event.target.value)}
-                placeholder="Add acceptance criteria, a useful link, or handoff note…"
-              />
-            </label>
-
-            {submitError && <p className="form-error" role="alert">{submitError}</p>}
-          </div>
-
-          <div className="dialog-footer">
-            <button className="text-button" type="button" onClick={closeDialog}>Cancel</button>
-            <button className="primary-button submit-button" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? <><span className="button-spinner" /> Submitting…</> : <><Icon name="plus" /> Submit ticket</>}
-            </button>
-          </div>
-        </form>
-      </dialog>
+      <TicketCreateModal
+        open={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onCreated={handleTicketCreated}
+      />
 
       {toast && <div className="toast" role="status"><Icon name="check" /> {toast}</div>}
     </div>
