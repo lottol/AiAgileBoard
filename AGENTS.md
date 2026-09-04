@@ -8,6 +8,24 @@ Do not allow any new software to be installed directly. If it absolutely needs n
 
 Development will occur in Docker container. 
 
+## Docker
+
+Docker Desktop may be installed per-user and unavailable on the Codex execution shell's PATH.
+
+Before concluding Docker is unavailable:
+
+1. Try resolving `docker` normally.
+2. Check these locations:
+   - `$env:LOCALAPPDATA\Programs\DockerDesktop\resources\bin\docker.exe`
+   - `$env:ProgramFiles\Docker\Docker\resources\bin\docker.exe`
+3. If sandbox access prevents checking or executing the discovered CLI, retry with elevated sandbox permission.
+4. Invoke the discovered executable directly; do not modify PATH.
+5. Use the `backend-test` Dockerfile target for tests:
+   `docker build --target backend-test -t ai-agile-board-backend-test .`
+
+## Github
+- Keep in mind that Github is installed in the CLI and not in Docker.
+
 ## Allowed
 - modify the dockerfile 
 - modify the .gitignore

@@ -10,15 +10,33 @@ RUN npm ci
 COPY src/AiAgileBoard.Client/ ./
 RUN npm run build
 
-# Restore and publish the ASP.NET Core backend.
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS backend-build
+# Validate frontend lint rules and component behavior in the same isolated toolchain.
+FROM frontend-build AS frontend-test
+RUN npm run lint
+RUN npm run test
+
+# Restore the backend and test dependencies in a reusable SDK stage.
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS backend-dependencies
 WORKDIR /source
 
 COPY Directory.Build.props ./
+COPY AiAgileBoard.slnx ./
 COPY src/AiAgileBoard.Api/AiAgileBoard.Api.csproj src/AiAgileBoard.Api/
-RUN dotnet restore src/AiAgileBoard.Api/AiAgileBoard.Api.csproj
+COPY tests/AiAgileBoard.UnitTests/AiAgileBoard.UnitTests.csproj tests/AiAgileBoard.UnitTests/
+COPY tests/AiAgileBoard.IntegrationTests/AiAgileBoard.IntegrationTests.csproj tests/AiAgileBoard.IntegrationTests/
+RUN dotnet restore AiAgileBoard.slnx
 
 COPY src/AiAgileBoard.Api/ src/AiAgileBoard.Api/
+
+# Build this target to compile and run the complete test suite.
+FROM backend-dependencies AS backend-test
+COPY tests/ tests/
+RUN dotnet test AiAgileBoard.slnx \
+    --configuration Release \
+    --no-restore
+
+# Publish the ASP.NET Core backend with the production frontend assets.
+FROM backend-dependencies AS backend-build
 COPY --from=frontend-build /source/src/AiAgileBoard.Client/dist/ src/AiAgileBoard.Api/wwwroot/
 
 RUN dotnet publish src/AiAgileBoard.Api/AiAgileBoard.Api.csproj \
