@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { App } from './App'
+import { TicketsPage } from './TicketsPage'
 
 const ticket = {
   id: '95817b43-5922-4481-80f8-cd930061d2f6',
@@ -20,10 +20,10 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('App', () => {
+describe('TicketsPage', () => {
   it('loads and displays every ticket', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [ticket] }))
-    render(<App />)
+    render(<TicketsPage />)
 
     expect(screen.getByRole('heading', { name: 'All tickets' })).toBeInTheDocument()
     expect(screen.queryByText('Welcome back.')).not.toBeInTheDocument()
@@ -34,7 +34,7 @@ describe('App', () => {
 
   it('opens the submission form', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [] }))
-    render(<App />)
+    render(<TicketsPage />)
     await screen.findByText('Your board is ready')
 
     fireEvent.click(screen.getByRole('button', { name: 'Submit a ticket' }))

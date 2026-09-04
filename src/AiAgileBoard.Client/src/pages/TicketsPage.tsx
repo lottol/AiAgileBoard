@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { TicketCreateModal, type Ticket } from './TicketCreateModal'
+import { TicketCreateModal, type Ticket } from '../modals/TicketCreateModal'
 
 function Icon({ name }: { name: 'plus' | 'ticket' | 'person' | 'agent' | 'check' }) {
   const paths = {
@@ -26,7 +26,7 @@ function statusClass(status: string) {
   return status.toLowerCase().replaceAll(' ', '-')
 }
 
-export function App() {
+export function TicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')

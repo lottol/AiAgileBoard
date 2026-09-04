@@ -146,6 +146,7 @@ Agents must never receive filesystem, repository, or shell access merely by conn
 The initial implementation should use:
 
 - **Frontend:** React, TypeScript, Vite, and an accessible component system.
+- **Frontend organization:** Route-level screens live in `src/pages`, while reusable modal workflows live in `src/modals`. Pages compose modal components through explicit props and callbacks so the same workflow can be reused without duplicating form or API logic.
 - **Backend:** ASP.NET Core Web API on the current supported .NET LTS release.
 - **Application structure:** two sibling projects: a React/Vite frontend and one ASP.NET Core backend organized into focused folders for API, application logic, domain rules, and data access.
 - **Data layer:** Entity Framework Core with SQLite, versioned migrations, foreign keys, WAL mode, and transactional claim operations.
@@ -172,6 +173,10 @@ The frontend and backend will be separate projects so they can be developed, tes
 │       ├── package.json
 │       ├── vite.config.ts
 │       └── src/
+│           ├── pages/                 # Route-level page components and page tests
+│           ├── modals/                # Reusable modal workflows
+│           ├── main.tsx               # Frontend entry point
+│           └── styles.css             # Shared visual styles
 ├── packages/
 │   ├── api-client-ts/        # Generated TypeScript client
 │   └── agent-sdk-python/     # Small Python agent client
