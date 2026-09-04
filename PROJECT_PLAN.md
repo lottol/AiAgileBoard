@@ -147,24 +147,31 @@ The initial implementation should use:
 
 - **Frontend:** React, TypeScript, Vite, and an accessible component system.
 - **Backend:** ASP.NET Core Web API on the current supported .NET LTS release.
-- **Application core:** .NET class libraries containing use cases and domain rules independently of HTTP and persistence.
+- **Application structure:** two sibling projects: a React/Vite frontend and one ASP.NET Core backend organized into focused folders for API, application logic, domain rules, and data access.
 - **Data layer:** Entity Framework Core with SQLite, versioned migrations, foreign keys, WAL mode, and transactional claim operations.
 - **Local hosting:** ASP.NET Core serves the API and production frontend assets, bound to `127.0.0.1` by default.
 - **Contracts:** OpenAPI-generated types shared with the UI and client SDKs.
 - **Testing:** xUnit for .NET unit/integration tests, Vitest and React Testing Library for frontend logic, and Playwright for critical workflows.
 
-The application should be organized so that workflow and domain logic do not depend on ASP.NET Core, Entity Framework Core, or the React UI. This leaves room for a future desktop host, headless server, or shared-team mode without rewriting ticket rules.
+The frontend and backend will be separate projects so they can be developed, tested, and built independently. The backend will initially use one `.csproj`; folder and namespace boundaries should keep domain rules independent of ASP.NET Core and Entity Framework Core. If the backend outgrows this structure, its folders can later be extracted into class-library projects without changing the domain model. Production builds will copy the compiled frontend into the backend's `wwwroot` directory so the application can still run as one deployment.
 
 ### Suggested repository layout
 
 ```text
 /
 ├── src/
-│   ├── AiAgileBoard.Web/             # ASP.NET Core API and application host
-│   ├── AiAgileBoard.Application/     # Use cases and application services
-│   ├── AiAgileBoard.Domain/          # Ticket state machine and business rules
-│   ├── AiAgileBoard.Infrastructure/  # EF Core, SQLite, migrations, and services
-│   └── AiAgileBoard.Client/          # React, TypeScript, and Vite frontend
+│   ├── AiAgileBoard.Api/
+│   │   ├── AiAgileBoard.Api.csproj   # Single ASP.NET Core backend project
+│   │   ├── Program.cs                # Application entry point and composition
+│   │   ├── Api/                      # Endpoints, contracts, and HTTP concerns
+│   │   ├── Application/              # Use cases and application services
+│   │   ├── Domain/                   # Ticket state machine and business rules
+│   │   ├── Data/                     # EF Core, SQLite, and migrations
+│   │   └── wwwroot/                  # Compiled frontend assets in production
+│   └── AiAgileBoard.Client/          # React, TypeScript, and Vite project
+│       ├── package.json
+│       ├── vite.config.ts
+│       └── src/
 ├── packages/
 │   ├── api-client-ts/        # Generated TypeScript client
 │   └── agent-sdk-python/     # Small Python agent client
@@ -237,16 +244,16 @@ The MVP is successful when:
 | Agent output is unsafe or misleading | Mandatory human review by default, visible evidence, and untrusted-content handling. |
 | Local API exposes local data | Loopback-only default, scoped hashed tokens, rate limits, and explicit LAN opt-in. |
 | Schema upgrades corrupt user data | Versioned migrations, automatic pre-upgrade backup, and restore tests. |
-| Scope expands toward full Jira parity | Enforce the MVP and non-goal lists; evaluate additions only after milestone exit criteria pass. |
+| Scope expands toward full Jira parity | Enforce the MVP and non-goal lists; evaluate additions only after the core workflow is proven. |
 
 ## 13. First implementation backlog
 
 1. Write an architecture decision record for the React frontend, .NET backend, and local-service topology.
-2. Implement the ticket status enum, transition matrix, and next-actor derivation in the domain project.
+2. Implement the ticket status enum, transition matrix, and next-actor derivation in the `Domain` folder.
 3. Add exhaustive transition and authorization tests.
 4. Design the SQLite schema, migration runner, and development seed data.
-5. Scaffold the ASP.NET Core solution and React/Vite board layout.
-6. Implement project and ticket CRUD through application-core use cases.
+5. Scaffold the sibling ASP.NET Core API and React/Vite client projects.
+6. Implement project and ticket CRUD through use cases in the `Application` folder.
 7. Build the board and ticket detail views against real local storage.
 8. Add append-only activity events for mutations.
 9. Define `/api/v1` in OpenAPI and generate shared client types.

@@ -14,16 +14,13 @@ RUN npm run build
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS backend-build
 WORKDIR /source
 
-COPY src/AiAgileBoard.Web/AiAgileBoard.Web.csproj src/AiAgileBoard.Web/
-COPY src/AiAgileBoard.Application/AiAgileBoard.Application.csproj src/AiAgileBoard.Application/
-COPY src/AiAgileBoard.Domain/AiAgileBoard.Domain.csproj src/AiAgileBoard.Domain/
-COPY src/AiAgileBoard.Infrastructure/AiAgileBoard.Infrastructure.csproj src/AiAgileBoard.Infrastructure/
-RUN dotnet restore src/AiAgileBoard.Web/AiAgileBoard.Web.csproj
+COPY src/AiAgileBoard.Api/AiAgileBoard.Api.csproj src/AiAgileBoard.Api/
+RUN dotnet restore src/AiAgileBoard.Api/AiAgileBoard.Api.csproj
 
-COPY src/ src/
-COPY --from=frontend-build /source/src/AiAgileBoard.Client/dist/ src/AiAgileBoard.Web/wwwroot/
+COPY src/AiAgileBoard.Api/ src/AiAgileBoard.Api/
+COPY --from=frontend-build /source/src/AiAgileBoard.Client/dist/ src/AiAgileBoard.Api/wwwroot/
 
-RUN dotnet publish src/AiAgileBoard.Web/AiAgileBoard.Web.csproj \
+RUN dotnet publish src/AiAgileBoard.Api/AiAgileBoard.Api.csproj \
     --configuration Release \
     --no-restore \
     --output /app/publish \
@@ -44,4 +41,4 @@ USER app
 VOLUME ["/app/data"]
 EXPOSE 8080
 
-ENTRYPOINT ["dotnet", "AiAgileBoard.Web.dll"]
+ENTRYPOINT ["dotnet", "AiAgileBoard.Api.dll"]
