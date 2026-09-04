@@ -7,6 +7,17 @@ namespace AiAgileBoard.Application;
 
 public sealed class TicketService(AgileBoardDbContext dbContext)
 {
+    public async Task<Ticket?> GetTicketAsync(
+        Guid ticketId,
+        CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Tickets
+            .AsNoTracking()
+            .Include(ticket => ticket.State)
+            .Include(ticket => ticket.Comments)
+            .SingleOrDefaultAsync(ticket => ticket.Id == ticketId, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Ticket>> QueryTicketsAsync(
         Func<IQueryable<Ticket>, IQueryable<Ticket>> query,
         CancellationToken cancellationToken = default)
@@ -30,20 +41,7 @@ public sealed class TicketService(AgileBoardDbContext dbContext)
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(ticket);
-        ArgumentException.ThrowIfNullOrWhiteSpace(ticket.Title);
-        ArgumentException.ThrowIfNullOrWhiteSpace(ticket.Description);
-
-        if (ticket.StoryPoints < 0)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(ticket),
-                "Story points cannot be negative.");
-        }
-
-        if (!Enum.IsDefined(ticket.Assignee))
-        {
-            throw new ArgumentException("Assignee must be Human or Agent.", nameof(ticket));
-        }
+        ValidateEditableFields(ticket);
 
         var state = await ResolveStateAsync(ticket, cancellationToken);
 
@@ -70,6 +68,55 @@ public sealed class TicketService(AgileBoardDbContext dbContext)
         dbContext.Tickets.Add(ticket);
         await dbContext.SaveChangesAsync(cancellationToken);
         return ticket;
+    }
+
+    public async Task<Ticket?> UpdateTicketAsync(
+        Guid ticketId,
+        Ticket changes,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(changes);
+
+        var ticket = await dbContext.Tickets
+            .Include(item => item.State)
+            .Include(item => item.Comments)
+            .SingleOrDefaultAsync(item => item.Id == ticketId, cancellationToken);
+
+        if (ticket is null)
+        {
+            return null;
+        }
+
+        ValidateEditableFields(changes);
+        var state = await ResolveStateAsync(changes, cancellationToken);
+
+        ticket.Title = changes.Title.Trim();
+        ticket.Description = changes.Description.Trim();
+        ticket.StoryPoints = changes.StoryPoints;
+        ticket.Assignee = changes.Assignee;
+        ticket.StateId = state.Id;
+        ticket.State = state;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return ticket;
+    }
+
+    private static void ValidateEditableFields(Ticket ticket)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(ticket.Title);
+        ArgumentException.ThrowIfNullOrWhiteSpace(ticket.Description);
+
+        if (ticket.StoryPoints < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(ticket),
+                "Story points cannot be negative.");
+        }
+
+        if (!Enum.IsDefined(ticket.Assignee))
+        {
+            throw new ArgumentException("Assignee must be Human or Agent.", nameof(ticket));
+        }
     }
 
     private async Task<State> ResolveStateAsync(

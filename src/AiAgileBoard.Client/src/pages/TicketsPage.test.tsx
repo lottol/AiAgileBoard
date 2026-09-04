@@ -32,6 +32,7 @@ describe('TicketsPage', () => {
     const ticketRow = ticketTitle.closest('article')
     expect(ticketRow).toHaveTextContent(ticket.id)
     expect(ticketRow).toHaveTextContent('Human Review')
+    expect(screen.getByRole('link', { name: ticket.id })).toHaveAttribute('href', `/tickets/${ticket.id}`)
   })
 
   it('opens the submission form', async () => {
