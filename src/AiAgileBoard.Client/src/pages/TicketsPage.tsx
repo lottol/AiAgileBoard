@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { TicketCreateModal, type Ticket } from '../modals/TicketCreateModal'
+import { TicketCreateModal } from '../modals/TicketCreateModal'
+import type { Ticket } from '../tickets'
 
 function Icon({ name }: { name: 'plus' | 'ticket' | 'person' | 'agent' | 'check' }) {
   const paths = {
@@ -140,7 +141,7 @@ export function TicketsPage() {
               {tickets.map((ticket) => (
                 <article className="ticket-row" key={ticket.id}>
                   <div className="ticket-main">
-                    <span className="ticket-id">{ticket.id}</span>
+                    <a className="ticket-id" href={`/tickets/${ticket.id}`}>{ticket.id}</a>
                     <h3>{ticket.title}</h3>
                     <p>{ticket.description}</p>
                   </div>

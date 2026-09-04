@@ -10,8 +10,14 @@ public static class TicketsApi
         api.MapGet("/tickets", QueryTicketsAsync)
             .WithName("QueryTickets");
 
+        api.MapGet("/tickets/{ticketId:guid}", GetTicketAsync)
+            .WithName("GetTicket");
+
         api.MapPost("/tickets", SubmitTicketAsync)
             .WithName("SubmitTicket");
+
+        api.MapPut("/tickets/{ticketId:guid}", UpdateTicketAsync)
+            .WithName("UpdateTicket");
 
         return api;
     }
@@ -27,6 +33,15 @@ public static class TicketsApi
         return Results.Ok(results.Select(ToResponse).ToArray());
     }
 
+    private static async Task<IResult> GetTicketAsync(
+        Guid ticketId,
+        TicketService ticketService,
+        CancellationToken cancellationToken)
+    {
+        var ticket = await ticketService.GetTicketAsync(ticketId, cancellationToken);
+        return ticket is null ? Results.NotFound() : Results.Ok(ToResponse(ticket));
+    }
+
     private static async Task<IResult> SubmitTicketAsync(
         Ticket ticket,
         TicketService ticketService,
@@ -38,6 +53,37 @@ public static class TicketsApi
             return Results.Created(
                 $"/api/v1/tickets/{submittedTicket.Id}",
                 ToResponse(submittedTicket));
+        }
+        catch (ArgumentException exception)
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["ticket"] = [exception.Message]
+            });
+        }
+    }
+
+    private static async Task<IResult> UpdateTicketAsync(
+        Guid ticketId,
+        TicketUpdateRequest request,
+        TicketService ticketService,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var ticket = await ticketService.UpdateTicketAsync(
+                ticketId,
+                new Ticket
+                {
+                    Title = request.Title,
+                    Description = request.Description,
+                    StoryPoints = request.StoryPoints,
+                    Assignee = request.Assignee,
+                    State = new State { Name = request.State }
+                },
+                cancellationToken);
+
+            return ticket is null ? Results.NotFound() : Results.Ok(ToResponse(ticket));
         }
         catch (ArgumentException exception)
         {
@@ -69,5 +115,12 @@ public static class TicketsApi
         int StoryPoints,
         string State,
         bool HumanNeeded,
+        Assignee Assignee);
+
+    private sealed record TicketUpdateRequest(
+        string Title,
+        string Description,
+        int StoryPoints,
+        string State,
         Assignee Assignee);
 }

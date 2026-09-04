@@ -1,15 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from 'react'
-
-export type Ticket = {
-  id: string
-  title: string
-  description: string
-  comments: string[]
-  storyPoints: number
-  state: string
-  humanNeeded: boolean
-  assignee: 'Human' | 'Agent'
-}
+import { agentStatuses, ticketStatuses, type Ticket } from '../tickets'
 
 type TicketForm = {
   title: string
@@ -34,21 +24,6 @@ const initialForm: TicketForm = {
   state: 'Backlog',
   note: '',
 }
-
-const statuses = [
-  'Backlog',
-  'Ready for Human',
-  'Human In Progress',
-  'Waiting for Agent',
-  'Agent In Progress',
-  'Human Review',
-  'Changes Requested',
-  'Blocked',
-  'Done',
-  'Canceled',
-]
-
-const agentStatuses = new Set(['Waiting for Agent', 'Agent In Progress', 'Changes Requested'])
 
 function ModalIcon({ name }: { name: 'plus' | 'ticket' | 'close' }) {
   const paths = {
@@ -173,7 +148,7 @@ export function TicketCreateModal({ open, onClose, onCreated }: TicketCreateModa
           <label className="field">
             <span>Status</span>
             <select value={form.state} onChange={(event) => updateField('state', event.target.value)}>
-              {statuses.map((status) => <option key={status}>{status}</option>)}
+              {ticketStatuses.map((status) => <option key={status}>{status}</option>)}
             </select>
           </label>
 

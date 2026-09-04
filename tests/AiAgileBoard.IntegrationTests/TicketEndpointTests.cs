@@ -126,6 +126,77 @@ public sealed class TicketEndpointTests : IClassFixture<AiAgileBoardWebApplicati
     }
 
     [Fact]
+    public async Task GetAndUpdateTicketReturnsThePersistedDetails()
+    {
+        var submitRequest = new
+        {
+            title = "Editable ticket",
+            description = "Original description",
+            comments = new[] { new { body = "Keep this comment" } },
+            storyPoints = 2,
+            state = new { name = "Backlog" },
+            assignee = "Human"
+        };
+
+        using var submitResponse = await _client.PostAsJsonAsync(
+            "/api/v1/tickets",
+            submitRequest,
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, submitResponse.StatusCode);
+        using var submittedBody = await JsonDocument.ParseAsync(
+            await submitResponse.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken),
+            cancellationToken: TestContext.Current.CancellationToken);
+        var ticketId = submittedBody.RootElement.GetProperty("id").GetGuid();
+
+        using var getResponse = await _client.GetAsync(
+            $"/api/v1/tickets/{ticketId}",
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
+
+        var updateRequest = new
+        {
+            title = "Edited ticket",
+            description = "Updated description",
+            storyPoints = 5,
+            state = "Ready for Human",
+            assignee = "Agent"
+        };
+        using var updateResponse = await _client.PutAsJsonAsync(
+            $"/api/v1/tickets/{ticketId}",
+            updateRequest,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+        using var updatedBody = await JsonDocument.ParseAsync(
+            await updateResponse.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken),
+            cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal("Edited ticket", updatedBody.RootElement.GetProperty("title").GetString());
+        Assert.Equal("Updated description", updatedBody.RootElement.GetProperty("description").GetString());
+        Assert.Equal(5, updatedBody.RootElement.GetProperty("storyPoints").GetInt32());
+        Assert.Equal("Ready for Human", updatedBody.RootElement.GetProperty("state").GetString());
+        Assert.Equal("Agent", updatedBody.RootElement.GetProperty("assignee").GetString());
+        Assert.Equal("Keep this comment", updatedBody.RootElement.GetProperty("comments")[0].GetString());
+
+        using var persistedResponse = await _client.GetAsync(
+            $"/api/v1/tickets/{ticketId}",
+            TestContext.Current.CancellationToken);
+        using var persistedBody = await JsonDocument.ParseAsync(
+            await persistedResponse.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken),
+            cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal("Edited ticket", persistedBody.RootElement.GetProperty("title").GetString());
+    }
+
+    [Fact]
+    public async Task GetTicketReturnsNotFoundForUnknownId()
+    {
+        using var response = await _client.GetAsync(
+            $"/api/v1/tickets/{Guid.NewGuid()}",
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
     public async Task TicketServiceAcceptsComposableLinqQuery()
     {
         using var scope = _factory.Services.CreateScope();
