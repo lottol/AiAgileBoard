@@ -8,6 +8,12 @@ Do not allow any new software to be installed directly. If it absolutely needs n
 
 Development will occur in Docker container. 
 
+## Docker
+Keep in mind that Docker is installed for my users PATH and not for the whole computer
+
+## Github
+- Keep in mind that Github is installed in the CLI and not in Docker.
+
 ## Allowed
 - modify the dockerfile 
 - modify the .gitignore
