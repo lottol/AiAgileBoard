@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AiAgileBoard.Api/AiAgileBoard.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AiAgileBoard.UnitTests/AiAgileBoard.UnitTests.csproj" />
+    <Project Path="tests/AiAgileBoard.IntegrationTests/AiAgileBoard.IntegrationTests.csproj" />
+  </Folder>
+</Solution>
