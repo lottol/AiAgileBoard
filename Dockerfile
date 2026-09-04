@@ -10,6 +10,11 @@ RUN npm ci
 COPY src/AiAgileBoard.Client/ ./
 RUN npm run build
 
+# Validate frontend lint rules and component behavior in the same isolated toolchain.
+FROM frontend-build AS frontend-test
+RUN npm run lint
+RUN npm run test
+
 # Restore the backend and test dependencies in a reusable SDK stage.
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS backend-dependencies
 WORKDIR /source
