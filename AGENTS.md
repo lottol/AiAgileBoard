@@ -25,7 +25,7 @@ Development will occur in Docker container.
 - Follow the architecture documented in PROJECT_PLAN.md.
 
 ## Before Making Any Changes
-1. Create new Git branch off of development branch
+1. Create new Git branch off of development branch. Any commit messages will have The agent name prefixing any proper commit message created
 
 ## Before Making Major Changes
 1. Read PROJECT_PLAN.md.
