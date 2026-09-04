@@ -11,7 +11,7 @@ AI Agile Board needs an independently testable browser client and API while rema
 
 Use a React/TypeScript/Vite client and a single ASP.NET Core API project with internal API, application, domain, and data boundaries. Production client assets are copied into the API's `wwwroot`, and the API binds to loopback by default outside its container boundary.
 
-SQLite will provide local persistence once the data layer is implemented. Agent integrations communicate only through the versioned `/api/v1` surface.
+SQLite provides local persistence through Entity Framework Core and versioned migrations. Agent integrations will communicate only through the versioned `/api/v1` surface when the agent lifecycle is implemented; the current `/api/v1` surface contains only health and generic ticket operations.
 
 ## Consequences
 

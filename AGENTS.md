@@ -23,8 +23,20 @@ Before concluding Docker is unavailable:
 5. Use the `backend-test` Dockerfile target for tests:
    `docker build --target backend-test -t ai-agile-board-backend-test .`
 
-## Github
-- Keep in mind that Github is installed in the CLI and not in Docker.
+## GitHub CLI
+
+- GitHub CLI (`gh`) is installed on the host, outside Docker.
+- Assume the existing `gh` login may be valid.
+- Never conclude that authentication is invalid from a command run with restricted network access.
+- If a `gh` command fails with a socket, DNS, network, or apparent authentication error inside the sandbox, repeat the same read-only check with elevated sandbox/network permission before reporting the cause.
+- Distinguish these failure types:
+  1. Authentication: whether `gh auth status` succeeds with host network access.
+  2. Authorization: whether the token has the scope required by the requested operation.
+  3. Connectivity: whether sandbox restrictions prevented reaching GitHub.
+- Report a missing token scope as a scope problem, not as expired or invalid authentication.
+- Test the requested GitHub capability directly. For GitHub Projects, use:
+  `gh project list --owner lottol --format json`
+- Do not recommend installing another GitHub integration until the host `gh` CLI has been tested correctly.
 
 ## Allowed
 - modify the dockerfile 

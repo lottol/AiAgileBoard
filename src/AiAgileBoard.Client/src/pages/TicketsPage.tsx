@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { TicketCreateModal, type Ticket } from '../modals/TicketCreateModal'
+import { TicketCreateModal } from '../modals/TicketCreateModal'
+import type { Ticket } from '../tickets'
 
 function Icon({ name }: { name: 'plus' | 'ticket' | 'person' | 'agent' | 'check' }) {
   const paths = {
@@ -15,11 +16,6 @@ function Icon({ name }: { name: 'plus' | 'ticket' | 'person' | 'agent' | 'check'
       {paths[name]}
     </svg>
   )
-}
-
-function formatTicketId(id: string) {
-  const compact = id.replaceAll('-', '').slice(0, 5).toUpperCase()
-  return `AAB-${compact || 'NEW'}`
 }
 
 function statusClass(status: string) {
@@ -68,7 +64,7 @@ export function TicketsPage() {
 
   function handleTicketCreated(createdTicket: Ticket) {
     setTickets((current) => [...current, createdTicket])
-    setToast(`${formatTicketId(createdTicket.id)} was added to the board.`)
+    setToast(`${createdTicket.id} was added to the board.`)
   }
 
   return (
@@ -145,7 +141,7 @@ export function TicketsPage() {
               {tickets.map((ticket) => (
                 <article className="ticket-row" key={ticket.id}>
                   <div className="ticket-main">
-                    <span className="ticket-id">{formatTicketId(ticket.id)}</span>
+                    <a className="ticket-id" href={`/tickets/${ticket.id}`}>{ticket.id}</a>
                     <h3>{ticket.title}</h3>
                     <p>{ticket.description}</p>
                   </div>

@@ -1,17 +1,8 @@
 import { FormEvent, useEffect, useRef, useState } from 'react'
-
-export type Ticket = {
-  id: string
-  title: string
-  description: string
-  comments: string[]
-  storyPoints: number
-  state: string
-  humanNeeded: boolean
-  assignee: 'Human' | 'Agent'
-}
+import { agentStatuses, ticketStatuses, TicketType, type Ticket } from '../tickets'
 
 type TicketForm = {
+  type: TicketType
   title: string
   description: string
   storyPoints: string
@@ -27,6 +18,7 @@ type TicketCreateModalProps = {
 }
 
 const initialForm: TicketForm = {
+  type: TicketType.Story,
   title: '',
   description: '',
   storyPoints: '3',
@@ -34,21 +26,6 @@ const initialForm: TicketForm = {
   state: 'Backlog',
   note: '',
 }
-
-const statuses = [
-  'Backlog',
-  'Ready for Human',
-  'Human In Progress',
-  'Waiting for Agent',
-  'Agent In Progress',
-  'Human Review',
-  'Changes Requested',
-  'Blocked',
-  'Done',
-  'Canceled',
-]
-
-const agentStatuses = new Set(['Waiting for Agent', 'Agent In Progress', 'Changes Requested'])
 
 function ModalIcon({ name }: { name: 'plus' | 'ticket' | 'close' }) {
   const paths = {
@@ -92,6 +69,7 @@ export function TicketCreateModal({ open, onClose, onCreated }: TicketCreateModa
     setIsSubmitting(true)
 
     const payload = {
+      type: form.type,
       title: form.title.trim(),
       description: form.description.trim(),
       storyPoints: Number(form.storyPoints),
@@ -173,7 +151,14 @@ export function TicketCreateModal({ open, onClose, onCreated }: TicketCreateModa
           <label className="field">
             <span>Status</span>
             <select value={form.state} onChange={(event) => updateField('state', event.target.value)}>
-              {statuses.map((status) => <option key={status}>{status}</option>)}
+              {ticketStatuses.map((status) => <option key={status}>{status}</option>)}
+            </select>
+          </label>
+
+          <label className="field">
+            <span>Type</span>
+            <select value={form.type} onChange={(event) => updateField('type', event.target.value as TicketType)}>
+              {Object.values(TicketType).map((type) => <option key={type}>{type}</option>)}
             </select>
           </label>
 
