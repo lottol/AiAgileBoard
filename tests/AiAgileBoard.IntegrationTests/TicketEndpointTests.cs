@@ -43,6 +43,7 @@ public sealed class TicketEndpointTests : IClassFixture<AiAgileBoardWebApplicati
         Assert.Equal("Backlog", body.RootElement.GetProperty("state").GetString());
         Assert.True(body.RootElement.GetProperty("humanNeeded").GetBoolean());
         Assert.Equal("Agent", body.RootElement.GetProperty("assignee").GetString());
+        Assert.Equal("Task", body.RootElement.GetProperty("type").GetString());
         Assert.Equal(
             "First comment",
             body.RootElement.GetProperty("comments")[0].GetString());
@@ -156,6 +157,7 @@ public sealed class TicketEndpointTests : IClassFixture<AiAgileBoardWebApplicati
         var updateRequest = new
         {
             title = "Edited ticket",
+            type = "Feature",
             description = "Updated description",
             storyPoints = 5,
             state = "Ready for Human",
@@ -184,6 +186,49 @@ public sealed class TicketEndpointTests : IClassFixture<AiAgileBoardWebApplicati
             await persistedResponse.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken),
             cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("Edited ticket", persistedBody.RootElement.GetProperty("title").GetString());
+        Assert.Equal("Feature", persistedBody.RootElement.GetProperty("type").GetString());
+    }
+
+    [Theory]
+    [InlineData("Epic")]
+    [InlineData("Feature")]
+    [InlineData("Story")]
+    [InlineData("Task")]
+    public async Task TicketTypePersistsAndAppearsInQueries(string type)
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var response = await _client.PostAsJsonAsync("/api/v1/tickets",
+            new { title = "Typed ticket", description = "Persist its type", type }, cancellationToken);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var created = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+        Assert.Equal(type, created.GetProperty("type").GetString());
+        var id = created.GetProperty("id").GetGuid();
+        var ticket = await _client.GetFromJsonAsync<JsonElement>($"/api/v1/tickets/{id}", cancellationToken);
+        Assert.Equal(type, ticket.GetProperty("type").GetString());
+        var tickets = await _client.GetFromJsonAsync<JsonElement>("/api/v1/tickets", cancellationToken);
+        Assert.Equal(type, tickets.EnumerateArray().Single(item => item.GetProperty("id").GetGuid() == id)
+            .GetProperty("type").GetString());
+    }
+
+    [Theory]
+    [InlineData("Unknown")]
+    [InlineData("999")]
+    public async Task InvalidTicketTypeIsRejectedOnCreateAndUpdate(string type)
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var rejected = await _client.PostAsJsonAsync("/api/v1/tickets",
+            new { title = "Invalid type", description = "Invalid type", type }, cancellationToken);
+        Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode);
+
+        using var created = await _client.PostAsJsonAsync("/api/v1/tickets",
+            new { title = "Valid ticket", description = "Keep its type", type = "Story" }, cancellationToken);
+        var ticket = await created.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+        var id = ticket.GetProperty("id").GetGuid();
+        using var updated = await _client.PutAsJsonAsync($"/api/v1/tickets/{id}",
+            new { title = "Invalid type", description = "Invalid type", state = "Backlog", type }, cancellationToken);
+        Assert.Equal(HttpStatusCode.BadRequest, updated.StatusCode);
+        var persisted = await _client.GetFromJsonAsync<JsonElement>($"/api/v1/tickets/{id}", cancellationToken);
+        Assert.Equal("Story", persisted.GetProperty("type").GetString());
     }
 
     [Fact]

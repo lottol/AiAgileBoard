@@ -1,4 +1,14 @@
+export const TicketType = {
+  Epic: 'Epic',
+  Feature: 'Feature',
+  Story: 'Story',
+  Task: 'Task',
+} as const
+
+export type TicketType = typeof TicketType[keyof typeof TicketType]
+
 export type Ticket = {
+  type: TicketType
   id: string
   title: string
   description: string

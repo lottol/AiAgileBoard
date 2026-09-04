@@ -93,6 +93,7 @@ public sealed class TicketService(AgileBoardDbContext dbContext)
         ticket.Title = changes.Title.Trim();
         ticket.Description = changes.Description.Trim();
         ticket.StoryPoints = changes.StoryPoints;
+        ticket.Type = changes.Type;
         ticket.Assignee = changes.Assignee;
         ticket.StateId = state.Id;
         ticket.State = state;
@@ -116,6 +117,11 @@ public sealed class TicketService(AgileBoardDbContext dbContext)
         if (!Enum.IsDefined(ticket.Assignee))
         {
             throw new ArgumentException("Assignee must be Human or Agent.", nameof(ticket));
+        }
+
+        if (!Enum.IsDefined(ticket.Type))
+        {
+            throw new ArgumentException("Type must be Epic, Feature, Story, or Task.", nameof(ticket));
         }
     }
 

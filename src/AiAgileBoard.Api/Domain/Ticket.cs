@@ -12,6 +12,8 @@ public sealed class Ticket
 
     public int StoryPoints { get; set; }
 
+    public TicketType Type { get; set; } = TicketType.Task;
+
     public Assignee Assignee { get; set; }
 
     public int StateId { get; set; }

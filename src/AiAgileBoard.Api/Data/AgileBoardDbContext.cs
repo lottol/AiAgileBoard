@@ -39,6 +39,7 @@ public sealed class AgileBoardDbContext(DbContextOptions<AgileBoardDbContext> op
             ticket.HasKey(item => item.Id);
             ticket.Property(item => item.Title).HasMaxLength(200).IsRequired();
             ticket.Property(item => item.Description).IsRequired();
+            ticket.Property(item => item.Type).HasConversion<string>().HasMaxLength(20);
             ticket.Property(item => item.Assignee).HasConversion<string>().HasMaxLength(20);
             ticket.HasOne(item => item.State)
                 .WithMany(state => state.Tickets)

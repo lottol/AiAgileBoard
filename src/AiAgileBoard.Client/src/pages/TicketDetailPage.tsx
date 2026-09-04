@@ -1,14 +1,15 @@
 import { FormEvent, useEffect, useState } from 'react'
-import { ticketStatuses, type Ticket } from '../tickets'
+import { ticketStatuses, TicketType, type Ticket } from '../tickets'
 
 type TicketDetailPageProps = {
   ticketId: string
 }
 
-type TicketDraft = Pick<Ticket, 'title' | 'description' | 'storyPoints' | 'state' | 'assignee'>
+type TicketDraft = Pick<Ticket, 'type' | 'title' | 'description' | 'storyPoints' | 'state' | 'assignee'>
 
 function toDraft(ticket: Ticket): TicketDraft {
   return {
+    type: ticket.type,
     title: ticket.title,
     description: ticket.description,
     storyPoints: ticket.storyPoints,
@@ -144,6 +145,12 @@ export function TicketDetailPage({ ticketId }: TicketDetailPageProps) {
 
               <aside className="ticket-properties" aria-label="Ticket properties">
                 <h2>Details</h2>
+                <label className="field">
+                  <span>Type</span>
+                  <select value={draft.type} onChange={(event) => updateDraft('type', event.target.value as TicketType)}>
+                    {Object.values(TicketType).map((type) => <option key={type}>{type}</option>)}
+                  </select>
+                </label>
                 <label className="field">
                   <span>Assignee</span>
                   <select
