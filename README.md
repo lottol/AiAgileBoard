@@ -1,20 +1,48 @@
 # AI Agile Board
 
-A local-first agile board where people and coding agents collaborate through explicit, auditable tickets.
+AI Agile Board is a local-first work board for collaboration between people and AI coding agents. The current prototype supports a persistent ticket list, ticket creation, and ticket editing through a React interface and a versioned ASP.NET Core API.
 
-## Repository layout
+> The repository is an early prototype. Agent authentication, claiming and leases, review enforcement, activity history, projects, generated SDKs, import/export, and notifications are planned but are not implemented yet.
 
-- `src/AiAgileBoard.Api` — ASP.NET Core API and production host
-- `src/AiAgileBoard.Client` — React, TypeScript, and Vite client
-- `packages` — generated TypeScript client and Python agent SDK
-- `tests` — backend unit/integration tests and browser workflows
-- `docs` — architecture, agent API, and user documentation
+## What works today
+
+- View all tickets and summary counts for human work, agent work, and completed work.
+- Create a ticket with a title, description, workflow state, human or agent assignee, story points, and an optional initial note.
+- Open a ticket detail page and edit its title, description, state, assignee, and story points.
+- Persist tickets and comments in SQLite across container restarts when a Docker volume is used.
+- Access health and ticket create/read/update operations under `/api/v1`.
+- Build and run the frontend and backend as one production container.
+- Validate the prototype with backend integration tests and frontend component tests.
 
 ## Run in Docker
+
+From the repository root:
 
 ```sh
 docker build -t ai-agile-board .
 docker run --rm -p 127.0.0.1:8080:8080 -v ai-agile-board-data:/app/data ai-agile-board
 ```
 
-Open `http://127.0.0.1:8080`. See [PROJECT_PLAN.md](PROJECT_PLAN.md) for the product scope and architecture.
+Open `http://127.0.0.1:8080`. The named volume stores the SQLite database at `/app/data/aiagileboard.db` so tickets survive container replacement.
+
+## Documentation
+
+- [Documentation index](docs/README.md) — current scope and links to all project documentation
+- [User guide](docs/user-guide/README.md) — run the application and use the ticket workflow
+- [API reference](docs/agent-api/README.md) — currently implemented HTTP endpoints and payloads
+- [Current architecture](docs/architecture/current-implementation.md) — runtime components, request flow, and data model
+- [Development guide](docs/development.md) — repository layout, Docker validation, and contribution workflow
+- [Project plan](PROJECT_PLAN.md) — product vision, target architecture, and future backlog
+- [ADR 0001](docs/architecture/0001-application-topology.md) — accepted application-topology decision
+
+## Repository layout
+
+```text
+src/AiAgileBoard.Api/       ASP.NET Core API, application service, domain model, and SQLite data layer
+src/AiAgileBoard.Client/    React, TypeScript, and Vite browser client
+tests/                      .NET integration/unit test projects and the end-to-end placeholder
+packages/                   Placeholders for future generated TypeScript and Python clients
+docs/                       User, API, architecture, and development documentation
+```
+
+The intended MVP is broader than the current prototype. See the [current status](docs/README.md#implementation-status) before relying on a capability described in the project plan.
