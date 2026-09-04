@@ -78,6 +78,7 @@ public static class TicketsApi
                     Title = request.Title,
                     Description = request.Description,
                     StoryPoints = request.StoryPoints,
+                    Type = request.Type,
                     Assignee = request.Assignee,
                     State = new State { Name = request.State }
                 },
@@ -104,7 +105,8 @@ public static class TicketsApi
             ticket.StoryPoints,
             ticket.State.Name,
             ticket.State.HumanNeeded,
-            ticket.Assignee);
+            ticket.Assignee,
+            ticket.Type);
     }
 
     private sealed record TicketResponse(
@@ -115,12 +117,14 @@ public static class TicketsApi
         int StoryPoints,
         string State,
         bool HumanNeeded,
-        Assignee Assignee);
+        Assignee Assignee,
+        TicketType Type);
 
     private sealed record TicketUpdateRequest(
         string Title,
         string Description,
         int StoryPoints,
         string State,
-        Assignee Assignee);
+        Assignee Assignee,
+        TicketType Type = TicketType.Story);
 }

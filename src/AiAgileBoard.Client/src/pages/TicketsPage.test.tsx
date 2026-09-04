@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { TicketsPage } from './TicketsPage'
 
 const ticket = {
+  type: 'Task',
   id: '95817b43-5922-4481-80f8-cd930061d2f6',
   title: 'Review agent handoff',
   description: 'Confirm the result and validation evidence.',
@@ -46,5 +47,23 @@ describe('TicketsPage', () => {
     expect(screen.getByRole('heading', { name: 'Submit a new ticket' })).toBeInTheDocument()
     expect(screen.getByLabelText('Ticket title')).toBeRequired()
     expect(screen.getByLabelText('Description')).toBeRequired()
+    expect(screen.getByLabelText('Type')).toHaveValue('Story')
+  })
+
+  it('submits the selected ticket type', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ ...ticket, type: 'Epic' }) })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<TicketsPage />)
+    await screen.findByText('Your board is ready')
+    fireEvent.click(screen.getByRole('button', { name: 'Submit a ticket' }))
+    fireEvent.change(screen.getByLabelText('Ticket title'), { target: { value: ticket.title } })
+    fireEvent.change(screen.getByLabelText('Description'), { target: { value: ticket.description } })
+    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'Epic' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Submit ticket' }))
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+    expect(JSON.parse(String(fetchMock.mock.calls[1][1].body))).toMatchObject({ type: 'Epic' })
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 })

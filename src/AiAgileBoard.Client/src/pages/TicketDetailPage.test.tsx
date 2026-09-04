@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { TicketDetailPage } from './TicketDetailPage'
 
 const ticket = {
+  type: 'Story',
   id: '95817b43-5922-4481-80f8-cd930061d2f6',
   title: 'Review agent handoff',
   description: 'Confirm the result and validation evidence.',
@@ -29,6 +30,7 @@ describe('TicketDetailPage', () => {
     expect(await screen.findByDisplayValue(ticket.title)).toBeInTheDocument()
     expect(screen.getByDisplayValue(ticket.description)).toBeInTheDocument()
     expect(screen.getByLabelText('Assignee')).toHaveValue('Human')
+    expect(screen.getByLabelText('Type')).toHaveValue('Story')
     expect(screen.getByLabelText('Points')).toHaveValue(3)
     expect(screen.getByLabelText('State')).toHaveValue('Human Review')
     expect(screen.getByText(ticket.comments[0])).toBeInTheDocument()
@@ -39,6 +41,7 @@ describe('TicketDetailPage', () => {
     const updatedTicket = {
       ...ticket,
       title: 'Approve agent handoff',
+      type: 'Feature',
       storyPoints: 5,
       state: 'Done',
     }
@@ -50,6 +53,7 @@ describe('TicketDetailPage', () => {
     render(<TicketDetailPage ticketId={ticket.id} />)
     fireEvent.change(await screen.findByLabelText('Title'), { target: { value: updatedTicket.title } })
     fireEvent.change(screen.getByLabelText('Points'), { target: { value: '5' } })
+    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'Feature' } })
     fireEvent.change(screen.getByLabelText('State'), { target: { value: 'Done' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
 
@@ -62,6 +66,7 @@ describe('TicketDetailPage', () => {
     const request = fetchMock.mock.calls[1][1] as RequestInit
     expect(JSON.parse(String(request.body))).toMatchObject({
       title: updatedTicket.title,
+      type: 'Feature',
       storyPoints: 5,
       state: 'Done',
       assignee: 'Human',
