@@ -2,28 +2,25 @@
 
 # Build the React/Vite frontend.
 FROM node:22-alpine AS frontend-build
-WORKDIR /source/src/AiAgileBoard.Client
+WORKDIR /source/src/AiAgileBoard/Client
 
-COPY src/AiAgileBoard.Client/package*.json ./
+COPY src/AiAgileBoard/Client/package*.json ./
 RUN npm ci
 
-COPY src/AiAgileBoard.Client/ ./
+COPY src/AiAgileBoard/Client/ ./
 RUN npm run build
 
 # Restore and publish the ASP.NET Core backend.
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS backend-build
 WORKDIR /source
 
-COPY src/AiAgileBoard.Web/AiAgileBoard.Web.csproj src/AiAgileBoard.Web/
-COPY src/AiAgileBoard.Application/AiAgileBoard.Application.csproj src/AiAgileBoard.Application/
-COPY src/AiAgileBoard.Domain/AiAgileBoard.Domain.csproj src/AiAgileBoard.Domain/
-COPY src/AiAgileBoard.Infrastructure/AiAgileBoard.Infrastructure.csproj src/AiAgileBoard.Infrastructure/
-RUN dotnet restore src/AiAgileBoard.Web/AiAgileBoard.Web.csproj
+COPY src/AiAgileBoard/AiAgileBoard.csproj src/AiAgileBoard/
+RUN dotnet restore src/AiAgileBoard/AiAgileBoard.csproj
 
-COPY src/ src/
-COPY --from=frontend-build /source/src/AiAgileBoard.Client/dist/ src/AiAgileBoard.Web/wwwroot/
+COPY src/AiAgileBoard/ src/AiAgileBoard/
+COPY --from=frontend-build /source/src/AiAgileBoard/Client/dist/ src/AiAgileBoard/wwwroot/
 
-RUN dotnet publish src/AiAgileBoard.Web/AiAgileBoard.Web.csproj \
+RUN dotnet publish src/AiAgileBoard/AiAgileBoard.csproj \
     --configuration Release \
     --no-restore \
     --output /app/publish \
@@ -44,4 +41,4 @@ USER app
 VOLUME ["/app/data"]
 EXPOSE 8080
 
-ENTRYPOINT ["dotnet", "AiAgileBoard.Web.dll"]
+ENTRYPOINT ["dotnet", "AiAgileBoard.dll"]
