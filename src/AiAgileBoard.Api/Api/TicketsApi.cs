@@ -126,5 +126,5 @@ public static class TicketsApi
         int StoryPoints,
         string State,
         Assignee Assignee,
-        TicketType Type = TicketType.Task);
+        TicketType Type = TicketType.Story);
 }

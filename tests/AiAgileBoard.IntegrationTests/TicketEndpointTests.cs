@@ -43,7 +43,7 @@ public sealed class TicketEndpointTests : IClassFixture<AiAgileBoardWebApplicati
         Assert.Equal("Backlog", body.RootElement.GetProperty("state").GetString());
         Assert.True(body.RootElement.GetProperty("humanNeeded").GetBoolean());
         Assert.Equal("Agent", body.RootElement.GetProperty("assignee").GetString());
-        Assert.Equal("Task", body.RootElement.GetProperty("type").GetString());
+        Assert.Equal("Story", body.RootElement.GetProperty("type").GetString());
         Assert.Equal(
             "First comment",
             body.RootElement.GetProperty("comments")[0].GetString());
@@ -227,6 +227,25 @@ public sealed class TicketEndpointTests : IClassFixture<AiAgileBoardWebApplicati
         using var updated = await _client.PutAsJsonAsync($"/api/v1/tickets/{id}",
             new { title = "Invalid type", description = "Invalid type", state = "Backlog", type }, cancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, updated.StatusCode);
+        var persisted = await _client.GetFromJsonAsync<JsonElement>($"/api/v1/tickets/{id}", cancellationToken);
+        Assert.Equal("Story", persisted.GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public async Task UpdateWithoutTypeDefaultsToStory()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var created = await _client.PostAsJsonAsync("/api/v1/tickets",
+            new { title = "Task ticket", description = "Update without a type", type = "Task" }, cancellationToken);
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var ticket = await created.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+        var id = ticket.GetProperty("id").GetGuid();
+
+        using var updated = await _client.PutAsJsonAsync($"/api/v1/tickets/{id}",
+            new { title = "Updated ticket", description = "Default to Story", state = "Backlog" }, cancellationToken);
+        Assert.Equal(HttpStatusCode.OK, updated.StatusCode);
+        var response = await updated.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+        Assert.Equal("Story", response.GetProperty("type").GetString());
         var persisted = await _client.GetFromJsonAsync<JsonElement>($"/api/v1/tickets/{id}", cancellationToken);
         Assert.Equal("Story", persisted.GetProperty("type").GetString());
     }

@@ -10,7 +10,7 @@ namespace AiAgileBoard.IntegrationTests;
 public sealed class TicketTypeMigrationTests
 {
     [Fact]
-    public async Task ExistingTicketsBecomeTasksWhenDatabaseIsUpgraded()
+    public async Task ExistingTicketsBecomeStoriesWhenDatabaseIsUpgraded()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         await using var connection = new SqliteConnection("Data Source=:memory:");
@@ -29,6 +29,6 @@ public sealed class TicketTypeMigrationTests
         var ticket = await context.Tickets.SingleAsync(cancellationToken);
         Assert.Equal(id, ticket.Id);
         Assert.Equal("Existing ticket", ticket.Title);
-        Assert.Equal(TicketType.Task, ticket.Type);
+        Assert.Equal(TicketType.Story, ticket.Type);
     }
 }

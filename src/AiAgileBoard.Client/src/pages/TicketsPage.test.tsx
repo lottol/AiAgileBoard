@@ -47,7 +47,7 @@ describe('TicketsPage', () => {
     expect(screen.getByRole('heading', { name: 'Submit a new ticket' })).toBeInTheDocument()
     expect(screen.getByLabelText('Ticket title')).toBeRequired()
     expect(screen.getByLabelText('Description')).toBeRequired()
-    expect(screen.getByLabelText('Type')).toHaveValue('Task')
+    expect(screen.getByLabelText('Type')).toHaveValue('Story')
   })
 
   it('submits the selected ticket type', async () => {

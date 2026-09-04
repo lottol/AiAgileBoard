@@ -15,7 +15,7 @@ public sealed class AddTicketType : Migration
             type: "TEXT",
             maxLength: 20,
             nullable: false,
-            defaultValue: "Task");
+            defaultValue: "Story");
     }
 
     protected override void Down(MigrationBuilder migrationBuilder)

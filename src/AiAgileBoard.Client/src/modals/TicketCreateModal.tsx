@@ -18,7 +18,7 @@ type TicketCreateModalProps = {
 }
 
 const initialForm: TicketForm = {
-  type: TicketType.Task,
+  type: TicketType.Story,
   title: '',
   description: '',
   storyPoints: '3',
