@@ -18,3 +18,8 @@
 *.suo
 artifacts/
 browser-profile/
+recovery/
+*.aiab
+*.aiab.bak
+*.aiab.lock
+*.aiab.*.tmp

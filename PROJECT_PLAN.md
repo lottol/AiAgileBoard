@@ -4,7 +4,7 @@
 
 AI Agile Board is a local-first agile work-management application where humans and AI coding agents collaborate through explicit, auditable tickets. It should feel familiar to users of Jira or Trello, while treating AI agents as first-class workers that can discover, claim, update, and complete work without losing human control.
 
-The primary product is a Windows desktop application delivered as a portable ZIP. A WPF shell displays React through a bundled WebView2 runtime and owns an in-process .NET API. Docker remains a development and testing option. Custom project files and Open/Save workflows are deferred to a later story; the desktop prototype retains the existing SQLite format. See ADR 0002 and docs/windows-desktop.md.
+The primary product is a Windows desktop application delivered as a portable ZIP. A WPF shell displays React through a bundled WebView2 runtime and owns an in-process .NET API. Docker remains a development and testing option. The desktop supports self-contained `.aiab` ZIP projects with native Open/New dialogs, autosave, and recovery; each archive includes SQLite data and saved user settings. See docs/project-files.md. See ADR 0002 and docs/windows-desktop.md.
 
 ## 2. Product principles
 

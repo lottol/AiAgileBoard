@@ -1,5 +1,7 @@
 # ADR 0002: Windows desktop delivery
 
+Issue #20 supersedes the fixed-database and disabled-web-messaging details below: desktop now opens self-contained `.aiab` projects and uses a narrow origin-validated project-command bridge. See [project files](../project-files.md). Other desktop runtime decisions remain in effect.
+
 - Status: Accepted
 - Date: 2026-09-04
 - Supersedes ADR 0001's primary delivery model; retains its React/API boundaries.

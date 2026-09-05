@@ -19,7 +19,7 @@ flowchart LR
 
 `src/AiAgileBoard.Client` is a React and TypeScript application built by Vite.
 
-- `App.tsx` performs lightweight path matching. `/tickets/{id}` opens the ticket detail page; every other path opens the ticket list.
+- `App.tsx` performs lightweight path matching. On desktop, `ProjectWorkspace` first presents the project homepage and then wraps the open board with save status and project controls. `/tickets/{id}` opens the ticket detail page; other board paths open the ticket list. Docker opens the ticket list directly.
 - `pages/TicketsPage.tsx` fetches all tickets, calculates dashboard totals in the browser, renders loading/empty/error states, and opens the creation modal.
 - `modals/TicketCreateModal.tsx` manages the create form and posts a new ticket to the API.
 - `pages/TicketDetailPage.tsx` fetches one ticket and sends full editable-field updates with `PUT`.
@@ -70,7 +70,7 @@ The domain classes currently act as persistence entities. A transition state mac
 - `Tickets`, with a restricted foreign key to `States`;
 - `TicketComments`, with a cascading foreign key to `Tickets`.
 
-At application startup, the database directory is created and `Database.Migrate()` applies pending migrations. The default repository configuration uses `data/aiagileboard.db`; the production image overrides it with `/app/data/aiagileboard.db`.
+For Docker, startup creates the database directory and applies pending migrations; the image uses `/app/data/aiagileboard.db`. Desktop starts without opening a database. A `ProjectSession` validates and extracts an `.aiab`, applies migrations to its working SQLite copy, and supplies that connection to a new host. `IProjectPersistence` serializes desktop mutations and archive autosave while Docker retains direct database persistence. See [project files](../project-files.md) for the archive, settings, and recovery lifecycle.
 
 ## Request flows
 
