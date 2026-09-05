@@ -24,7 +24,7 @@ jobs:
       - name: Publish desktop
         shell: pwsh
         run: |
-          Copy-Item src/AiAgileBoard.Client/dist src/AiAgileBoard.Api/wwwroot -Recurse
+          Get-ChildItem src/AiAgileBoard.Client/dist | Copy-Item -Destination src/AiAgileBoard.Api/wwwroot -Recurse
           dotnet publish src/AiAgileBoard.Desktop/AiAgileBoard.Desktop.csproj -c Release -r win-x64 --self-contained true -o artifacts/desktop
       - name: Package fixed browser runtime
         shell: pwsh
