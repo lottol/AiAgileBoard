@@ -4,6 +4,7 @@ This documentation describes both the working prototype and the direction captur
 
 ## Start here
 
+- [Windows desktop](windows-desktop.md) explains portable executable delivery, storage, and updates.
 - [User guide](user-guide/README.md) explains how to run the application and manage tickets.
 - [API reference](agent-api/README.md) documents the HTTP operations available today.
 - [Current architecture](architecture/current-implementation.md) explains how the browser, API, application service, and SQLite database fit together.
@@ -20,7 +21,7 @@ Last reviewed: 2026-09-04.
 | Ticket creation | Implemented. Supports required title/description, state, assignee, non-negative story points, and one optional initial comment. |
 | Ticket detail/editing | Implemented. Supports reading one ticket and updating its title, description, state, assignee, and story points. Existing comments are read-only. |
 | Persistence | Implemented with EF Core, SQLite, and an initial migration. The schema and workflow states are created automatically at startup. |
-| Production hosting | Implemented as a multi-stage Docker image. ASP.NET Core serves both `/api/v1` and the compiled React assets. |
+| Production hosting | Portable Windows ZIP with WPF, bundled WebView2, self-contained .NET, and an in-process API. Docker remains available for development. |
 | Automated checks | Backend health and ticket integration tests plus frontend list/detail component tests are implemented. The backend unit project is currently only a scaffold. |
 | Projects and boards | Not implemented. The UI currently presents one fixed “Agile Board” project. |
 | Ticket deletion/archive, filtering, search, and ranking | Not implemented. |
@@ -31,7 +32,7 @@ Last reviewed: 2026-09-04.
 | Comment creation after ticket submission | Not implemented. |
 | OpenAPI and generated clients | Not implemented; `packages/` contains placeholders only. |
 | Events, notifications, import/export, and backups | Not implemented. Docker volume persistence is available, but there is no application-level backup workflow. |
-| End-to-end browser tests | Not implemented; the directory is a placeholder. |
+| Desktop end-to-end tests | Windows UI Automation validates packaged startup, ticket creation/editing, navigation, persistence, runtime selection, and shutdown. |
 
 ## Current workflow states
 

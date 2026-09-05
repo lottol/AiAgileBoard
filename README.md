@@ -6,6 +6,7 @@ AI Agile Board is a local-first work board for collaboration between people and 
 
 ## What works today
 
+- Launch the portable Windows desktop app with bundled .NET and WebView2 runtimes.
 - View all tickets and summary counts for human work, agent work, and completed work.
 - Create a ticket with a title, description, workflow state, human or agent assignee, story points, and an optional initial note.
 - Open a ticket detail page and edit its title, description, state, assignee, and story points.
@@ -13,6 +14,10 @@ AI Agile Board is a local-first work board for collaboration between people and 
 - Access health and ticket create/read/update operations under `/api/v1`.
 - Build and run the frontend and backend as one production container.
 - Validate the prototype with backend integration tests and frontend component tests.
+
+## Run on Windows
+
+The primary desktop delivery is a portable Windows ZIP. Extract the complete package and double-click `AiAgileBoard.exe`. See [Windows desktop instructions](docs/windows-desktop.md) for downloads/builds, storage, updates, and validation. The following Docker workflow remains available for development.
 
 ## Run in Docker
 

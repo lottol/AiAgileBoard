@@ -1,6 +1,6 @@
 # ADR 0001: Local web application topology
 
-- Status: Accepted
+- Status: Delivery model superseded by [ADR 0002](0002-windows-desktop.md); API and frontend boundaries retained.
 - Date: 2026-09-03
 
 ## Context

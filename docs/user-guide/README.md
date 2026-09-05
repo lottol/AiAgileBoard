@@ -4,7 +4,9 @@ This guide covers the ticket workflow implemented in the current local prototype
 
 ## Start the application
 
-From the repository root, build and run the combined application:
+On Windows 11 x64, extract the entire portable ZIP to a writable folder and double-click `AiAgileBoard.exe`. Tickets stay in the `data` folder beside the executable. See [Windows desktop instructions](../windows-desktop.md) for packaging, replacement, and troubleshooting.
+
+For the development Docker server, build and run from the repository root:
 
 ```sh
 docker build -t ai-agile-board .

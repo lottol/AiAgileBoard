@@ -16,3 +16,5 @@
 .vscode/
 *.user
 *.suo
+artifacts/
+browser-profile/
