@@ -3,20 +3,64 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
 Add-Type -AssemblyName System.IO.Compression.FileSystem
+Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+public static class DialogTestNative {
+    private delegate bool EnumWindow(IntPtr window, IntPtr parameter);
+    [DllImport("user32.dll")]
+    private static extern bool EnumChildWindows(IntPtr parent, EnumWindow callback, IntPtr parameter);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetClassName(IntPtr window, StringBuilder name, int size);
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetWindow(IntPtr window, uint command);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "SendMessageW")]
+    public static extern IntPtr ReadText(IntPtr window, uint message, IntPtr capacity, StringBuilder text);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    public static extern IntPtr SendMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "SendMessageW")]
+    public static extern IntPtr SetText(IntPtr window, uint message, IntPtr wParam, string text);
+    public static IntPtr FindEdit(IntPtr parent) {
+        IntPtr found = IntPtr.Zero;
+        EnumChildWindows(parent, (window, parameter) => {
+            var name = new StringBuilder(256);
+            GetClassName(window, name, name.Capacity);
+            if (name.ToString() != "Edit") return true;
+            found = window;
+            return false;
+        }, IntPtr.Zero);
+        return found;
+    }
+    public static IntPtr FindFollowingEdit(IntPtr label) {
+        var sibling = label;
+        for (int i = 0; i < 8; i++) {
+            sibling = GetWindow(sibling, 2);
+            if (sibling == IntPtr.Zero) break;
+            var name = new StringBuilder(256);
+            GetClassName(sibling, name, name.Capacity);
+            if (name.ToString() == "Edit") return sibling;
+            var edit = FindEdit(sibling);
+            if (edit != IntPtr.Zero) return edit;
+        }
+        return IntPtr.Zero;
+    }
+}
+'@
 $results = Join-Path $PSScriptRoot '../artifacts/desktop-test-results'
 New-Item -ItemType Directory -Force -Path $results | Out-Null
 foreach ($report in @('failure.txt', 'window.txt', 'passed.json')) {
     $reportPath = Join-Path $results $report
     if (Test-Path -LiteralPath $reportPath) { Remove-Item -LiteralPath $reportPath }
 }
-$testRoot = Join-Path $results ('Path with spaces ' + [Guid]::NewGuid().ToString('N'))
+$testRoot = Join-Path $results ('Path with spaces ' + [Guid]::NewGuid().ToString('N').Substring(0, 8))
 [System.IO.Compression.ZipFile]::ExtractToDirectory((Resolve-Path -LiteralPath $Package).Path, $testRoot)
 $testRoot = (Resolve-Path -LiteralPath $testRoot).Path
 $appDirectory = Join-Path $testRoot 'AiAgileBoard'
 $exe = Join-Path $appDirectory 'AiAgileBoard.exe'
 # Test-only links exercise navigation restrictions without adding controls to the product.
 $index = Join-Path $appDirectory 'wwwroot/index.html'
-$probe = '<div style="position:fixed;top:0;right:0;z-index:99999;background:white"><a href="https://example.invalid/">External navigation probe</a> <a href="https://example.invalid/" target="_blank">New window probe</a></div>'
+$probe = '<div style="position:fixed;top:0;right:0;z-index:99999;background:white"><a href="https://example.invalid/">External navigation probe</a> <a href="https://example.invalid/" target="_blank">New window probe</a><button onclick="window.chrome.webview.postMessage({command: &quot;updateSettings&quot;, settings: {theme: &quot;dark&quot;}})">Set project preferences</button></div>'
 [IO.File]::WriteAllText($index, [IO.File]::ReadAllText($index).Replace('</body>', "$probe</body>"))
 $script:process = $null
 $checks = [System.Collections.Generic.List[string]]::new()
@@ -43,20 +87,72 @@ function Element([string]$Name, [System.Windows.Automation.ControlType]$Type) {
     $nameCondition = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty, $Name)
     $typeCondition = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty, $Type)
     $condition = [System.Windows.Automation.AndCondition]::new($nameCondition, $typeCondition)
-    return $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $condition)
+    # Native file dialogs are owned top-level windows, not descendants of the WPF window.
+    $processCondition = [System.Windows.Automation.PropertyCondition]::new(
+        [System.Windows.Automation.AutomationElement]::ProcessIdProperty, $script:process.Id)
+    $windows = [System.Windows.Automation.AutomationElement]::RootElement.FindAll(
+        [System.Windows.Automation.TreeScope]::Children, $processCondition)
+    foreach ($candidate in $windows) {
+        $match = $candidate.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $condition)
+        if ($match) { return $match }
+    }
+    $match = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $condition)
+    if ($match) { return $match }
+    # Some Windows common-dialog providers expose native controls as panes.
+    $paneCondition = [System.Windows.Automation.AndCondition]::new($nameCondition,
+        [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+            [System.Windows.Automation.ControlType]::Pane))
+    foreach ($candidate in $windows) {
+        $matches = $candidate.FindAll([System.Windows.Automation.TreeScope]::Descendants, $paneCondition)
+        foreach ($match in $matches) {
+            if ($Type -eq [System.Windows.Automation.ControlType]::Edit -and $match.Current.ClassName -notin @('Edit', 'AppControlHost', 'Static')) { continue }
+            if ($Type -eq [System.Windows.Automation.ControlType]::Button -and $match.Current.ClassName -ne 'Button') { continue }
+            return $match
+        }
+    }
 }
 function Invoke-Element([string]$Name, [System.Windows.Automation.ControlType]$Type = [System.Windows.Automation.ControlType]::Button) {
+    Write-Output "Invoking: $Name"
     $element = Wait-For { Element $Name $Type } $Name
-    $element.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+    $pattern = $null
+    if ($element.TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern, [ref]$pattern)) {
+        $pattern.Invoke()
+    } elseif ($element.Current.ClassName -eq 'Button' -and $element.Current.NativeWindowHandle) {
+        [DialogTestNative]::SendMessage([IntPtr]$element.Current.NativeWindowHandle, 0x00F5, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
+    } else {
+        throw "Cannot invoke $Name ($($element.Current.ClassName)); patterns: $($element.GetSupportedPatterns().ProgrammaticName)"
+    }
 }
 function Set-Field([string]$Name, [string]$Value) {
     $element = Wait-For { Element $Name ([System.Windows.Automation.ControlType]::Edit) } $Name
-    $element.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).SetValue($Value)
+    $pattern = $null
+    if ($element.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern, [ref]$pattern)) {
+        $pattern.SetValue($Value)
+    } elseif ($element.Current.NativeWindowHandle -and $element.Current.ClassName -in @('Edit', 'AppControlHost', 'Static')) {
+        $edit = switch ($element.Current.ClassName) {
+            'Edit' { [IntPtr]$element.Current.NativeWindowHandle }
+            'AppControlHost' { [DialogTestNative]::FindEdit([IntPtr]$element.Current.NativeWindowHandle) }
+            'Static' { [DialogTestNative]::FindFollowingEdit([IntPtr]$element.Current.NativeWindowHandle) }
+        }
+        if ($edit -eq [IntPtr]::Zero) { throw "Native edit control missing for $Name" }
+        [DialogTestNative]::SendMessage($edit, 0x00B1, [IntPtr]::Zero, [IntPtr](-1)) | Out-Null
+        [DialogTestNative]::SetText($edit, 0x00C2, [IntPtr](1), $Value) | Out-Null
+        $text = [System.Text.StringBuilder]::new(2048)
+        [DialogTestNative]::ReadText($edit, 0x000D, [IntPtr]$text.Capacity, $text) | Out-Null
+        if ($text.ToString() -ne $Value) { throw "Native filename edit did not accept the test path. Actual: '$($text.ToString())'; handle: $edit" }
+    } else {
+        throw "Cannot set $Name ($($element.Current.ClassName)); patterns: $($element.GetSupportedPatterns().ProgrammaticName)"
+    }
 }
 function Start-Board {
     # Launch from an unrelated working directory to test executable-relative storage.
     $script:process = Start-Process -FilePath $exe -WorkingDirectory $testRoot -WindowStyle Hidden -PassThru
     Wait-For { Window } 'desktop window' | Out-Null
+}
+function Select-ProjectFile([string]$Action, [string]$Path, [string]$DialogButton) {
+    Invoke-Element $Action
+    Set-Field 'File name:' $Path
+    Invoke-Element $DialogButton
 }
 function Stop-Board {
     if ($script:process -and !$script:process.HasExited) {
@@ -75,6 +171,15 @@ try {
     # Chromium bypasses proxies for loopback; all external browser HTTP requests fail locally.
     $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = '--proxy-server=http://127.0.0.1:9'
     Start-Board
+    Wait-For { Element 'New Project' ([System.Windows.Automation.ControlType]::Button) } 'project homepage' | Out-Null
+    if (Test-Path (Join-Path $appDirectory 'data/aiagileboard.db')) { throw 'Homepage opened the legacy database.' }
+    Invoke-Element 'Open Project'
+    Invoke-Element 'Cancel'
+    $projectPath = Join-Path $testRoot 'Portable board.aiab'
+    Select-ProjectFile 'New Project' $projectPath 'Save'
+    Wait-For { Element 'Close Project' ([System.Windows.Automation.ControlType]::Button) } 'new project opened' | Out-Null
+    if (!(Test-Path -LiteralPath $projectPath)) { throw 'New Project did not create the archive.' }
+    $checks.Add('Homepage, native dialog cancellation, and New Project at a user-selected path')
     Invoke-Element 'External navigation probe' ([System.Windows.Automation.ControlType]::Hyperlink)
     Invoke-Element 'New window probe' ([System.Windows.Automation.ControlType]::Hyperlink)
     Invoke-Element 'Create first ticket'
@@ -130,22 +235,42 @@ try {
         [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $exe, $true)
     } finally { $archive.Dispose() }
     Start-Board
+    Select-ProjectFile 'Open Project' $projectPath 'Open'
     Wait-For { Element 'Desktop smoke edited' ([System.Windows.Automation.ControlType]::Text) } 'persisted ticket after restart' | Out-Null
-    if (!(Test-Path (Join-Path $appDirectory 'data/aiagileboard.db')) -or (Test-Path (Join-Path $testRoot 'data/aiagileboard.db'))) { throw 'Database is not executable-relative.' }
-    $checks.Add('Persistence after restart/executable replacement and paths containing spaces')
-    Stop-Board
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($projectPath)
+    try {
+        foreach ($name in @('manifest.json', 'settings.json', 'data/aiagileboard.db')) {
+            if (!$archive.GetEntry($name)) { throw "Archive missing $name" }
+        }
+    } finally { $archive.Dispose() }
+    Invoke-Element 'Close Project'
+    Wait-For { Element 'New Project' ([System.Windows.Automation.ControlType]::Button) } 'homepage after close' | Out-Null
+    $checks.Add('Archive contents and persistence after reopening, executable replacement, and Close Project')
 
-    # A file used as the database parent deterministically simulates an unwritable path without changing ACLs.
-    Set-Content -LiteralPath (Join-Path $appDirectory 'blocked-parent') -Value 'not a directory'
-    $env:ConnectionStrings__DefaultConnection = 'Data Source=blocked-parent/board.db'
-    Start-Board
+    $invalidProject = Join-Path $testRoot 'invalid.aiab'
+    Set-Content -LiteralPath $invalidProject -Value 'not a zip'
+    Select-ProjectFile 'Open Project' $invalidProject 'Open'
+    Wait-For { (Element 'New Project' ([System.Windows.Automation.ControlType]::Button)).Current.IsEnabled } 'homepage retained after invalid archive' | Out-Null
+    Select-ProjectFile 'Open Project' $projectPath 'Open'
+    Wait-For { Element 'Desktop smoke edited' ([System.Windows.Automation.ControlType]::Text) } 'valid project after invalid archive' | Out-Null
+
+    # Persist preferences through the same narrow bridge used by future settings controls.
+    # The injected probe is test-only and belongs to the application origin.
+    Invoke-Element 'Set project preferences' ([System.Windows.Automation.ControlType]::Button)
     Wait-For {
-        (Window).FindAll([System.Windows.Automation.TreeScope]::Descendants,
-            [System.Windows.Automation.Condition]::TrueCondition) |
-            Where-Object { $_.Current.Name -like 'AI Agile Board could not start.*' } | Select-Object -First 1
-    } 'actionable storage error' | Out-Null
+        $zip = [System.IO.Compression.ZipFile]::OpenRead($projectPath)
+        try {
+            $reader = [IO.StreamReader]::new($zip.GetEntry('settings.json').Open())
+            try { ($reader.ReadToEnd() | ConvertFrom-Json).theme -eq 'dark' } finally { $reader.Dispose() }
+        } finally { $zip.Dispose() }
+    } 'settings autosaved into archive' | Out-Null
+    $script:process.Kill()
+    $script:process.WaitForExit()
+    Start-Board
+    Invoke-Element 'Recover Project'
+    Wait-For { Element 'Desktop smoke edited' ([System.Windows.Automation.ControlType]::Text) } 'recovery after process interruption' | Out-Null
+    $checks.Add('Invalid archive handling, settings persistence, and recovery after interrupted process')
     Stop-Board
-    $checks.Add('Invalid storage override produces an actionable startup error')
     $env:ConnectionStrings__DefaultConnection = 'Data Source=data/aiagileboard.db'
     Start-Board
     Stop-Board

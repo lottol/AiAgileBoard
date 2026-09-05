@@ -5,7 +5,7 @@ using System.Globalization;
 
 namespace AiAgileBoard.Application;
 
-public sealed class TicketService(AgileBoardDbContext dbContext)
+public sealed class TicketService(AgileBoardDbContext dbContext, IProjectPersistence persistence)
 {
     public async Task<Ticket?> GetTicketAsync(
         Guid ticketId,
@@ -36,7 +36,10 @@ public sealed class TicketService(AgileBoardDbContext dbContext)
         return await composedQuery.ToListAsync(cancellationToken);
     }
 
-    public async Task<Ticket> SubmitTicketAsync(
+    public Task<Ticket> SubmitTicketAsync(Ticket ticket, CancellationToken cancellationToken = default) =>
+        persistence.MutateAsync(() => SubmitCoreAsync(ticket, cancellationToken), cancellationToken);
+
+    private async Task<Ticket> SubmitCoreAsync(
         Ticket ticket,
         CancellationToken cancellationToken = default)
     {
@@ -70,7 +73,10 @@ public sealed class TicketService(AgileBoardDbContext dbContext)
         return ticket;
     }
 
-    public async Task<Ticket?> UpdateTicketAsync(
+    public Task<Ticket?> UpdateTicketAsync(Guid ticketId, Ticket changes, CancellationToken cancellationToken = default) =>
+        persistence.MutateAsync(() => UpdateCoreAsync(ticketId, changes, cancellationToken), cancellationToken);
+
+    private async Task<Ticket?> UpdateCoreAsync(
         Guid ticketId,
         Ticket changes,
         CancellationToken cancellationToken = default)

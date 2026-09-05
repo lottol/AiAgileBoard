@@ -8,12 +8,14 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using AiAgileBoard.Application;
+using AiAgileBoard.Data.Projects;
 
 namespace AiAgileBoard.Desktop;
 
 internal static class DesktopHost
 {
-    public static WebApplication Build(string applicationDirectory)
+    public static WebApplication Build(string applicationDirectory, ProjectSession? session = null)
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
@@ -30,9 +32,9 @@ internal static class DesktopHost
             options.Listen(IPAddress.Loopback, 0);
         });
         builder.Configuration["ConnectionStrings:DefaultConnection"] =
-            DesktopStorage.ResolveConnectionString(
-                builder.Configuration.GetConnectionString("DefaultConnection"), applicationDirectory);
-        return BoardHost.Build(builder);
+            session?.ConnectionString ?? "Data Source=:memory:";
+        if (session is not null) builder.Services.AddSingleton<IProjectPersistence>(session);
+        return BoardHost.Build(builder, projectAvailable: session is not null);
     }
 
     public static Uri Address(WebApplication app) => new(

@@ -4,7 +4,7 @@ This guide covers the ticket workflow implemented in the current local prototype
 
 ## Start the application
 
-On Windows 11 x64, extract the entire portable ZIP to a writable folder and double-click `AiAgileBoard.exe`. Tickets stay in the `data` folder beside the executable. See [Windows desktop instructions](../windows-desktop.md) for packaging, replacement, and troubleshooting.
+On Windows 11 x64, extract the entire portable ZIP to a writable folder and double-click `AiAgileBoard.exe`. Choose **New Project** or **Open Project** on the homepage. Your `.aiab` file contains board data and saved preferences, and changes autosave. See [project files](../project-files.md) for recovery and [Windows desktop instructions](../windows-desktop.md) for packaging and troubleshooting.
 
 For the development Docker server, build and run from the repository root:
 
@@ -17,7 +17,7 @@ Open `http://127.0.0.1:8080`. Keep the `ai-agile-board-data` volume to retain ti
 
 ## Ticket dashboard
 
-The home page lists every ticket in the database. Each row shows the full ticket UUID, title, description, state, human or agent assignee, and story points. Select the ticket UUID to open its detail page.
+Once a project is open, the dashboard lists every ticket in its database. Each row shows the full ticket UUID, title, description, state, human or agent assignee, and story points. Select the ticket UUID to open its detail page.
 
 The summary cards are calculated from the loaded tickets:
 
@@ -26,7 +26,7 @@ The summary cards are calculated from the loaded tickets:
 - **With agents** counts non-Done, non-Canceled tickets whose state has `humanNeeded: false`.
 - **Completed** counts tickets in Done.
 
-The current prototype has no project selector, filters, search, sorting controls, or pagination. The “Agile Board” project label is fixed.
+On desktop, the project toolbar shows the filename and saving status. Use **Close Project** to return to the homepage before opening another project. Filters, search, sorting controls, and pagination are not implemented.
 
 ## Create a ticket
 

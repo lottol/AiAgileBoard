@@ -1,9 +1,10 @@
 param(
     [Parameter(Mandatory)][string]$PublishDirectory,
-    [string]$OutputDirectory = (Join-Path $PSScriptRoot '../artifacts/packages'),
+    [string]$OutputDirectory,
     [string]$RuntimeCab
 )
 $ErrorActionPreference = 'Stop'
+if (!$OutputDirectory) { $OutputDirectory = Join-Path $PSScriptRoot '../artifacts/packages' }
 $publish = (Resolve-Path -LiteralPath $PublishDirectory).Path
 $manifest = Get-Content (Join-Path $PSScriptRoot 'webview2-runtime.json') -Raw | ConvertFrom-Json
 foreach ($required in @('AiAgileBoard.exe', 'coreclr.dll', 'PresentationFramework.dll', 'wwwroot/index.html')) {
@@ -25,7 +26,7 @@ $stage = Join-Path $output ('staging-' + [Guid]::NewGuid().ToString('N'))
 $app = Join-Path $stage 'AiAgileBoard'
 $expanded = Join-Path $stage 'runtime-expanded'
 New-Item -ItemType Directory -Path $app, $expanded | Out-Null
-Get-ChildItem -LiteralPath $publish | Where-Object { $_.Name -notin @('data', 'browser-profile', 'WebView2Runtime', 'AiAgileBoard.Api.exe') -and $_.Extension -notin @('.db', '.pdb') } |
+Get-ChildItem -LiteralPath $publish | Where-Object { $_.Name -notin @('data', 'recovery', 'browser-profile', 'WebView2Runtime', 'AiAgileBoard.Api.exe') -and $_.Extension -notin @('.db', '.pdb', '.aiab', '.bak', '.lock', '.tmp') } |
     Copy-Item -Destination $app -Recurse
 & expand.exe $RuntimeCab '-F:*' $expanded | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'Could not expand the bundled WebView2 runtime.' }
@@ -34,6 +35,7 @@ if ($browser.Count -ne 1) { throw 'Runtime archive must contain exactly one brow
 if ($browser[0].VersionInfo.ProductVersion -ne $manifest.version) { throw 'Runtime version does not match the manifest.' }
 Copy-Item -LiteralPath $browser[0].Directory.FullName -Destination (Join-Path $app 'WebView2Runtime') -Recurse
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../docs/windows-desktop.md') -Destination (Join-Path $app 'README.md')
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../docs/project-files.md') -Destination $app
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'webview2-runtime.json') -Destination $app
 $zip = Join-Path $output 'AiAgileBoard-win-x64.zip'
 Compress-Archive -LiteralPath $app -DestinationPath $zip -Force

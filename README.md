@@ -2,11 +2,12 @@
 
 AI Agile Board is a local-first work board for collaboration between people and AI coding agents. The current prototype supports a persistent ticket list, ticket creation, and ticket editing through a React interface and a versioned ASP.NET Core API.
 
-> The repository is an early prototype. Agent authentication, claiming and leases, review enforcement, activity history, projects, generated SDKs, import/export, and notifications are planned but are not implemented yet.
+> The repository is an early prototype. Agent authentication, claiming and leases, review enforcement, activity history, multi-board management, generated SDKs, legacy import/export, and notifications are planned but are not implemented yet.
 
 ## What works today
 
 - Launch the portable Windows desktop app with bundled .NET and WebView2 runtimes.
+- Create and open self-contained `.aiab` projects on Windows, with board data, saved preferences, autosave, and recovery. See [project files](docs/project-files.md).
 - View all tickets and summary counts for human work, agent work, and completed work.
 - Create a ticket with a title, description, workflow state, human or agent assignee, story points, and an optional initial note.
 - Open a ticket detail page and edit its title, description, state, assignee, and story points.
