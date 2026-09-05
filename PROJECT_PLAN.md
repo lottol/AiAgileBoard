@@ -4,7 +4,7 @@
 
 AI Agile Board is a local-first agile work-management application where humans and AI coding agents collaborate through explicit, auditable tickets. It should feel familiar to users of Jira or Trello, while treating AI agents as first-class workers that can discover, claim, update, and complete work without losing human control.
 
-The initial product will be a locally run web application. A .NET service will host the React interface and expose a documented API that approved agents can use to connect to a board. Packaging it as a downloadable standalone application is intentionally deferred until the core workflow is proven.
+The primary product is a Windows desktop application delivered as a portable ZIP. A WPF shell displays React through a bundled WebView2 runtime and owns an in-process .NET API. Docker remains a development and testing option. Custom project files and Open/Save workflows are deferred to a later story; the desktop prototype retains the existing SQLite format. See ADR 0002 and docs/windows-desktop.md.
 
 ## 2. Product principles
 
@@ -101,7 +101,7 @@ Core entities are `Project`, `Board`, `Column`, `Ticket`, `User`, `Agent`, `ApiT
 
 ## 6. Minimum viable product
 
-### Web application experience
+### Desktop application experience
 
 - Create, rename, archive, export, and import projects.
 - Kanban board with configurable columns mapped to workflow statuses.
@@ -150,7 +150,7 @@ The initial implementation should use:
 - **Backend:** ASP.NET Core Web API on the current supported .NET LTS release.
 - **Application structure:** two sibling projects: a React/Vite frontend and one ASP.NET Core backend organized into focused folders for API, application logic, domain rules, and data access.
 - **Data layer:** Entity Framework Core with SQLite, versioned migrations, foreign keys, WAL mode, and transactional claim operations.
-- **Local hosting:** ASP.NET Core serves the API and production frontend assets, bound to `127.0.0.1` by default.
+- **Local hosting:** The WPF desktop shell owns ASP.NET Core serving the API and production frontend assets on an OS-assigned `127.0.0.1` port. A pinned WebView2 runtime displays the interface. Docker hosting remains available for development.
 - **Contracts:** OpenAPI-generated types shared with the UI and client SDKs.
 - **Testing:** xUnit for .NET unit/integration tests, Vitest and React Testing Library for frontend logic, and Playwright for critical workflows.
 
@@ -219,7 +219,7 @@ The frontend and backend will be separate projects so they can be developed, tes
 
 The MVP is successful when:
 
-- A new user can start the locally hosted application and create their first board.
+- A new user can extract the Windows package, launch the executable, and create their first board.
 - Humans can immediately tell who or what must act next on every visible ticket.
 - An authorized agent can safely discover and claim eligible work through documented APIs.
 - Two agents cannot own the same ticket concurrently.
@@ -273,5 +273,5 @@ The MVP is successful when:
 - Whether events should use Server-Sent Events or WebSockets; prefer SSE unless bidirectional messaging proves necessary.
 - Whether the optional MCP adapter ships in the initial release or immediately afterward.
 - Whether attachments belong in the database or an application-managed content-addressed directory.
-- Which desktop packaging technology, target operating systems, signing process, and update mechanism to adopt.
+- When to add an installer, code signing, and automatic updates to the portable Windows package.
 - Whether a future team server reuses the same .NET application core or becomes a separately deployed service.

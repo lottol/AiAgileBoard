@@ -45,6 +45,17 @@ RUN dotnet publish src/AiAgileBoard.Api/AiAgileBoard.Api.csproj \
     --output /app/publish \
     /p:UseAppHost=false
 
+# Cross-publish the desktop application without installing a host SDK.
+# Kept outside the Linux solution because WPF tests require Windows.
+FROM backend-dependencies AS desktop-build
+COPY src/AiAgileBoard.Desktop/ src/AiAgileBoard.Desktop/
+COPY --from=frontend-build /source/src/AiAgileBoard.Client/dist/ src/AiAgileBoard.Api/wwwroot/
+RUN dotnet publish src/AiAgileBoard.Desktop/AiAgileBoard.Desktop.csproj \
+    --configuration Release --runtime win-x64 --self-contained true --output /desktop
+
+FROM scratch AS desktop-export
+COPY --from=desktop-build /desktop/ /
+
 # Run the application with SQLite data stored outside the application binaries.
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app

@@ -1,0 +1,13 @@
+<Window x:Class="AiAgileBoard.Desktop.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wv="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        Title="AI Agile Board" Width="1200" Height="800" MinWidth="640" MinHeight="480"
+        WindowStartupLocation="CenterScreen">
+    <Grid>
+        <wv:WebView2 x:Name="Browser" Visibility="Hidden" />
+        <TextBlock x:Name="Status" Text="Starting AI Agile Board…" TextWrapping="Wrap"
+                   Margin="32" VerticalAlignment="Center" HorizontalAlignment="Center"
+                   MaxWidth="650" FontSize="18" />
+    </Grid>
+</Window>

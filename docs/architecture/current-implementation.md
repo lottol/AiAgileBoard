@@ -2,7 +2,7 @@
 
 ## Overview
 
-The prototype is a local web application assembled into one production container. The browser client and API are separate source projects during development, while ASP.NET Core serves the compiled client in production.
+The primary delivery is now a portable Windows application: a WPF shell displays React in a bundled WebView2 runtime and owns the ASP.NET Core host. The existing Docker server remains available. See [ADR 0002](0002-windows-desktop.md) and [Windows instructions](../windows-desktop.md). The browser client and API remain separate source projects; ASP.NET Core serves the compiled client in both hosts.
 
 ```mermaid
 flowchart LR
@@ -32,7 +32,7 @@ The client deliberately has no state-management or routing dependency. Page stat
 
 `src/AiAgileBoard.Api` is an ASP.NET Core 10 minimal API.
 
-- `Program.cs` configures JSON string enums, EF Core with SQLite, static files, startup migrations, the `/api/v1` group, and a single-page-app fallback.
+- `Hosting/BoardHost.cs` configures JSON string enums, EF Core with SQLite, static files, migrations, `/api/v1`, and the single-page-app fallback. Both the server entry point and desktop shell use it.
 - `Api/TicketsApi.cs` maps health-independent ticket routes and translates domain entities into stable response records.
 - Invalid ticket input is returned as an HTTP 400 validation problem; missing tickets return HTTP 404.
 

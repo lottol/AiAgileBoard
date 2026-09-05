@@ -27,6 +27,8 @@ docs/                                    maintained project documentation
 
 ## Build and run
 
+For the Windows executable, portable packaging, and the approved Windows validation workflow, see [Windows desktop](windows-desktop.md). The WPF project is built separately from the Linux solution so backend tests remain runnable in Docker.
+
 Build the complete production image:
 
 ```sh
